@@ -7,85 +7,16 @@ import VehicleGrid from "../Componentes/VehicleGrid"
 import SearchBar from "../Componentes/SearchBar"
 import Footer from "../Componentes/Footer"
 import "../Estilos/Reservar.css"
-
-// Importar imágenes
-import van1 from "../Imagenes/Furgoneta.png"
-import truck from "../Imagenes/Carro Rav4.png"
-import pickup from "../Imagenes/CamionC.png"
-import bus from "../Imagenes/Autobus.png"
-import ambulance from "../Imagenes/Ambulancia.png"
+import VehiculeService from "../Services/VehiculeService.ts"
 
 function Reservar() {
   const navigate = useNavigate()
   const isAuthenticated = localStorage.getItem("auth") === "true"
 
-  // Datos iniciales de vehículos
-  const initialVehicles = [
-    {
-      id: "v1",
-      brand: "Koenigsegg Toyota",
-      type: "furgoneta",
-      model: "Hiace",
-      year: "2023",
-      image: van1,
-      seats: 12,
-      transmission: "Manual",
-      fuel: "90L",
-      price: 99.00
-    },
-    {
-      id: "v2",
-      brand: "Koenigsegg Toyota",
-      type: "suv",
-      model: "RAV4",
-      year: "2023",
-      image: truck,
-      seats: 4,
-      transmission: "Manual",
-      fuel: "90L",
-      price: 99.00
-    },
-    {
-      id: "v3",
-      brand: "Koenigsegg Toyota",
-      type: "camion",
-      model: "Dyna",
-      year: "2023",
-      image: pickup,
-      seats: 3,
-      transmission: "Manual",
-      fuel: "90L",
-      price: 99.00
-    },
-    {
-      id: "v4",
-      brand: "Koenigsegg Toyota",
-      type: "autobus",
-      model: "Coaster",
-      year: "2023",
-      image: bus,
-      seats: 30,
-      transmission: "Manual",
-      fuel: "90L",
-      price: 99.00
-    },
-    {
-      id: "v5",
-      brand: "Koenigsegg Toyota",
-      type: "ambulancias",
-      model: "HiAce",
-      year: "2023",
-      image: ambulance,
-      seats: 4,
-      transmission: "Manual",
-      fuel: "90L",
-      price: 99.00
-    },
-    // Agregar más vehículos según sea necesario
-  ]
-
-  const [vehicles] = useState(initialVehicles)
-  const [filteredVehicles, setFilteredVehicles] = useState(initialVehicles)
+  const [vehicles, setVehicles] = useState([])
+  const [filteredVehicles, setFilteredVehicles] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [capacities, setCapacities] = useState([])
   const [filters, setFilters] = useState({
     type: null,
     capacity: null,
@@ -95,45 +26,61 @@ function Reservar() {
     year: ""
   })
 
+  // Fetch all vehicles when component mounts
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true)
+        const vehiclesData = await VehiculeService.getAllVehicules()
+        setVehicles(vehiclesData)
+        setFilteredVehicles(vehiclesData)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching vehicles:", error)
+        setLoading(false)
+      }
+    }
+    
+    const fetchCapacities = async () => {
+      try {
+        const capacitiesData = await VehiculeService.getAllCapacities()
+        setCapacities(capacitiesData)
+      } catch (error) {
+        console.error("Error fetching capacities:", error)
+      }
+    }
+    
+    fetchVehicles()
+    fetchCapacities()
+  }, [])
+
   // Función para aplicar todos los filtros
   const applyFilters = () => {
     let filtered = [...vehicles]
 
-    // Filtro por tipo
+    // Filtro por tipo (tipoVehiculo)
     if (filters.type) {
-      filtered = filtered.filter(vehicle => vehicle.type === filters.type)
+      filtered = filtered.filter(vehicle => vehicle.tipoVehiculo === filters.type)
     }
 
     // Filtro por capacidad
     if (filters.capacity) {
-      filtered = filtered.filter(vehicle => {
-        switch(filters.capacity) {
-          case "2personas": return vehicle.seats === 2
-          case "4personas": return vehicle.seats === 4
-          case "6personas": return vehicle.seats === 6
-          case "8omas": return vehicle.seats >= 8
-          default: return true
-        }
-      })
+      const capacityValue = parseInt(filters.capacity)
+      filtered = filtered.filter(vehicle => vehicle.capacidad === capacityValue)
     }
 
     // Filtro por precio
     filtered = filtered.filter(vehicle => vehicle.price <= filters.priceRange)
 
     // Filtros de búsqueda
-    if (filters.brand) {
-      filtered = filtered.filter(vehicle => 
-        vehicle.brand.toLowerCase().includes(filters.brand.toLowerCase())
-      )
-    }
     if (filters.model) {
       filtered = filtered.filter(vehicle => 
-        vehicle.model.toLowerCase().includes(filters.model.toLowerCase())
+        vehicle.modelo.toLowerCase().includes(filters.model.toLowerCase())
       )
     }
     if (filters.year) {
       filtered = filtered.filter(vehicle => 
-        vehicle.year.toString() === filters.year
+        vehicle.ano.toString() === filters.year
       )
     }
 
@@ -152,31 +99,54 @@ function Reservar() {
     }))
   }
 
+  // Mapeo de vehículos para VehicleGrid
+  const mappedVehicles = filteredVehicles.map(vehicle => ({
+    id: vehicle.idVehiculo,
+    brand: vehicle.tipoVehiculo, // El campo tipoVehiculo parece contener la marca
+    type: vehicle.tipoVehiculo,
+    model: vehicle.modelo,
+    year: vehicle.ano.toString(),
+    image: vehicle.Image_url,
+    seats: vehicle.capacidad,
+    transmision: vehicle.transmision || "Manual", // Valor por defecto ya que no viene del API
+    combustible: vehicle.combustible || "90L", // Valor por defecto ya que no viene del API
+    price: vehicle.price,
+    placa: vehicle.placa,
+    disponible: vehicle.disponible
+  }))
+
   return (
     <div className="page-container">
       {isAuthenticated ? <HeaderAuthenticated /> : <Header />}
       <div className="vehicle-rental">
         <div className="container">
-          <div className="vehicle-content">
-            <Sidebar
-              selectedType={filters.type}
-              selectedCapacity={filters.capacity}
-              priceRange={filters.priceRange}
-              onTypeChange={(type) => handleFilterChange('type', type)}
-              onCapacityChange={(capacity) => handleFilterChange('capacity', capacity)}
-              onPriceChange={(price) => handleFilterChange('priceRange', price)}
-            />
-            <div className="main-content">
-              <SearchBar 
-                filters={filters}
-                onFilterChange={handleFilterChange}
+          {loading ? (
+            <div className="loading">Cargando vehículos...</div>
+          ) : (
+            <div className="vehicle-content">
+              <Sidebar
+                selectedType={filters.type}
+                selectedCapacity={filters.capacity}
+                priceRange={filters.priceRange}
+                onTypeChange={(type) => handleFilterChange('type', type)}
+                onCapacityChange={(capacity) => handleFilterChange('capacity', capacity)}
+                onPriceChange={(price) => handleFilterChange('priceRange', price)}
+                vehicleTypes={Array.from(new Set(vehicles.map(v => v.tipoVehiculo)))}
+                capacities={capacities}
+                vehicles={vehicles}
               />
-              <VehicleGrid vehicles={filteredVehicles} />
-              <div className="reserve-more-container">
-                <button className="reserve-more-btn">Mostrar Más</button>
+              <div className="main-content">
+                <SearchBar 
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                />
+                <div className="results-info">
+                  <p>Mostrando {filteredVehicles.length} vehículos</p>
+                </div>
+                <VehicleGrid vehicles={mappedVehicles} />
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       <Footer />

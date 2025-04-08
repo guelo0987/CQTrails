@@ -1,14 +1,203 @@
 import "../Estilos/HeroSection.css"
 import heroCar from "../Imagenes/hero-car.png"
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import VehiculeService from '../Services/VehiculeService.ts'
 
 const HeroSection = ({ vehicles = [] }) => {
   const navigate = useNavigate()
+  const [brands, setBrands] = useState([])
+  const [models, setModels] = useState([])
+  const [years, setYears] = useState([])
+  const [selectedBrand, setSelectedBrand] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef(null)
+
+  // Load all brands when component mounts
+  useEffect(() => {
+    const loadBrands = async () => {
+      try {
+        setIsLoading(true)
+        const brandsData = await VehiculeService.getAllBrands()
+        setBrands(brandsData)
+        if (brandsData.length > 0) {
+          setSelectedBrand(brandsData[0])
+        }
+      } catch (error) {
+        console.error('Error loading brands:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadBrands()
+  }, [])
+
+  // Load models when brand changes
+  useEffect(() => {
+    const loadModels = async () => {
+      if (!selectedBrand) return
+      
+      try {
+        setIsLoading(true)
+        const modelsData = await VehiculeService.getModelsByBrand(selectedBrand)
+        setModels(modelsData)
+        if (modelsData.length > 0) {
+          setSelectedModel(modelsData[0])
+        } else {
+          setSelectedModel('')
+        }
+      } catch (error) {
+        console.error('Error loading models:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadModels()
+  }, [selectedBrand])
+
+  // Load years when model changes
+  useEffect(() => {
+    const loadYears = async () => {
+      if (!selectedBrand || !selectedModel) return
+      
+      try {
+        setIsLoading(true)
+        const yearsData = await VehiculeService.getYearsByModelAndBrand(selectedModel, selectedBrand)
+        setYears(yearsData)
+        if (yearsData.length > 0) {
+          setSelectedYear(yearsData[0])
+        } else {
+          setSelectedYear('')
+        }
+      } catch (error) {
+        console.error('Error loading years:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadYears()
+  }, [selectedBrand, selectedModel])
+
+  // Handle search input changes and generate suggestions
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    
+    if (value.length > 1) {
+      // Prioritize model suggestions
+      const modelSuggestions = models
+        .filter(model => model.toLowerCase().includes(value.toLowerCase()))
+        .map(model => ({ type: 'model', value: model }))
+      
+      // Add brand suggestions as secondary options
+      const brandSuggestions = brands
+        .filter(brand => brand.toLowerCase().includes(value.toLowerCase()))
+        .map(brand => ({ type: 'brand', value: brand }))
+      
+      // Add year suggestions as tertiary options
+      const yearSuggestions = years
+        .filter(year => year.toString().includes(value))
+        .map(year => ({ type: 'year', value: year.toString() }))
+      
+      // Combine all suggestions with models first
+      const allSuggestions = [...modelSuggestions, ...brandSuggestions, ...yearSuggestions]
+      
+      // Limit to 10 suggestions
+      setSuggestions(allSuggestions.slice(0, 10))
+      setShowSuggestions(true)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  // Handle suggestion selection
+  const handleSuggestionClick = async (suggestion) => {
+    setShowSuggestions(false)
+    setIsLoading(true)
+    
+    try {
+      // Apply the selected filter
+      if (suggestion.type === 'model') {
+        setSelectedModel(suggestion.value)
+        
+        // Find the brand for this model
+        const brandsForModel = await VehiculeService.getBrandsForModel(suggestion.value)
+        if (brandsForModel && brandsForModel.length > 0) {
+          setSelectedBrand(brandsForModel[0])
+          
+          // Now load years for this model and brand
+          const yearsData = await VehiculeService.getYearsByModelAndBrand(
+            suggestion.value, 
+            brandsForModel[0]
+          )
+          setYears(yearsData)
+          if (yearsData.length > 0) {
+            setSelectedYear(yearsData[0])
+          }
+        }
+      } else if (suggestion.type === 'brand') {
+        setSelectedBrand(suggestion.value)
+      } else if (suggestion.type === 'year') {
+        setSelectedYear(suggestion.value)
+      }
+    } catch (error) {
+      console.error('Error applying filters:', error)
+    } finally {
+      setIsLoading(false)
+    }
+    
+    // Clear search term
+    setSearchTerm('')
+  }
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    navigate('/reservar')
+    setIsLoading(true)
+    setHasSearched(true)
+    
+    // Simulate search results with placeholder images
+    // In a real implementation, you would call your API with the selected filters
+    setTimeout(() => {
+      const results = vehicles.filter(vehicle => 
+        (!selectedBrand || vehicle.modelo.includes(selectedBrand)) &&
+        (!selectedModel || vehicle.modelo.includes(selectedModel)) &&
+        (!selectedYear || vehicle.ano === parseInt(selectedYear))
+      )
+      
+      // Add placeholder image if not present
+      const resultsWithImages = results.map(vehicle => ({
+        ...vehicle,
+        Image_url: vehicle.Image_url || 'https://via.placeholder.com/300x200?text=No+Image+Available'
+      }))
+      
+      setSearchResults(resultsWithImages)
+      setIsLoading(false)
+    }, 500)
   }
 
   return (
@@ -35,10 +224,16 @@ const HeroSection = ({ vehicles = [] }) => {
           <div className="cq-hero__search-field">
             <label className="cq-hero__search-label">Marca</label>
             <div className="cq-hero__select-wrapper">
-              <select className="cq-hero__select" defaultValue="Toyota">
-                <option value="Toyota">Toyota</option>
-                <option value="Lexus">Lexus</option>
-                <option value="Hyundai">Hyundai</option>
+              <select 
+                className="cq-hero__select" 
+                value={selectedBrand}
+                onChange={(e) => setSelectedBrand(e.target.value)}
+                disabled={isLoading || brands.length === 0}
+              >
+                {brands.length === 0 && <option value="">Cargando...</option>}
+                {brands.map(brand => (
+                  <option key={brand} value={brand}>{brand}</option>
+                ))}
               </select>
               <svg
                 className="cq-hero__select-icon"
@@ -60,10 +255,16 @@ const HeroSection = ({ vehicles = [] }) => {
           <div className="cq-hero__search-field">
             <label className="cq-hero__search-label">Modelo</label>
             <div className="cq-hero__select-wrapper">
-              <select className="cq-hero__select" defaultValue="RAV4">
-                <option value="RAV4">RAV4</option>
-                <option value="Camry">Camry</option>
-                <option value="ES">ES</option>
+              <select 
+                className="cq-hero__select" 
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={isLoading || models.length === 0}
+              >
+                {models.length === 0 && <option value="">Seleccione marca primero</option>}
+                {models.map(model => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
               </select>
               <svg
                 className="cq-hero__select-icon"
@@ -85,11 +286,16 @@ const HeroSection = ({ vehicles = [] }) => {
           <div className="cq-hero__search-field">
             <label className="cq-hero__search-label">Año</label>
             <div className="cq-hero__select-wrapper">
-              <select className="cq-hero__select" defaultValue="2023">
-                <option value="2023">2023</option>
-                <option value="2022">2022</option>
-                <option value="2021">2021</option>
-                <option value="2020">2020</option>
+              <select 
+                className="cq-hero__select" 
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                disabled={isLoading || years.length === 0}
+              >
+                {years.length === 0 && <option value="">Seleccione modelo primero</option>}
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
               </select>
               <svg
                 className="cq-hero__select-icon"
@@ -108,31 +314,96 @@ const HeroSection = ({ vehicles = [] }) => {
             </div>
           </div>
 
-          <div className="cq-hero__search-field cq-hero__search-field--with-button">
+          <div className="cq-hero__search-field cq-hero__search-field--with-button" ref={searchRef}>
             <input 
               type="text" 
-              placeholder="Buscar" 
+              placeholder="Buscar marca, modelo o año" 
               className="cq-hero__search-input"
+              value={searchTerm}
+              onChange={handleSearchChange}
             />
-            <button type="submit" className="cq-hero__search-button">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="cq-hero__suggestions">
+                {suggestions.map((suggestion, index) => (
+                  <div 
+                    key={`${suggestion.type}-${suggestion.value}-${index}`}
+                    className="cq-hero__suggestion-item"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    <span className="cq-hero__suggestion-type">
+                      {suggestion.type === 'brand' ? 'Marca: ' : 
+                       suggestion.type === 'model' ? 'Modelo: ' : 'Año: '}
+                    </span>
+                    {suggestion.value}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button type="submit" className="cq-hero__search-button" disabled={isLoading}>
+              {isLoading ? (
+                <span className="cq-hero__loading-spinner"></span>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              )}
             </button>
           </div>
         </form>
       </div>
+
+      {hasSearched && (
+        <div className="cq-hero__search-results">
+          <h2 className="cq-hero__results-title">Resultados de búsqueda</h2>
+          {isLoading ? (
+            <div className="cq-hero__loading">Cargando resultados...</div>
+          ) : searchResults.length > 0 ? (
+            <div className="cq-hero__results-grid">
+              {searchResults.map(vehicle => (
+                <div key={vehicle.idVehiculo} className="cq-hero__result-card">
+                  <img 
+                    src={vehicle.Image_url} 
+                    alt={vehicle.modelo} 
+                    className="cq-hero__result-image"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://via.placeholder.com/300x200?text=No+Image+Available";
+                    }}
+                  />
+                  <div className="cq-hero__result-details">
+                    <h3 className="cq-hero__result-title">{vehicle.modelo}</h3>
+                    <p className="cq-hero__result-info">Año: {vehicle.ano}</p>
+                    <p className="cq-hero__result-info">Tipo: {vehicle.tipoVehiculo}</p>
+                    <p className="cq-hero__result-info">Capacidad: {vehicle.capacidad} personas</p>
+                    <p className="cq-hero__result-price">${vehicle.price}/día</p>
+                    <button 
+                      className="cq-hero__result-button"
+                      onClick={() => navigate(`/vehiculo/${vehicle.idVehiculo}`)}
+                    >
+                      Ver detalles
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cq-hero__no-results">
+              No se encontraron vehículos que coincidan con tu búsqueda.
+            </div>
+          )}
+        </div>
+      )}
     </section>
   )
 }

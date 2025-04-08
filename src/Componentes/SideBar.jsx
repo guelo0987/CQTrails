@@ -9,7 +9,10 @@ const Sidebar = ({
   priceRange,
   onTypeChange,
   onCapacityChange,
-  onPriceChange
+  onPriceChange,
+  vehicleTypes = [],
+  capacities = [],
+  vehicles = []
 }) => {
   const [selectedTypes, setSelectedTypes] = useState([])
   const [selectedCapacities, setSelectedCapacities] = useState([])
@@ -40,24 +43,48 @@ const Sidebar = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCapacity]) // Only depend on selectedCapacity, not selectedCapacities
 
-  const vehicleTypes = [
-    { id: "furgoneta", name: "Furgoneta", count: 90 },
-    { id: "suv", name: "SUV", count: 10 },
-    { id: "camion", name: "Camión", count: 15 },
-    { id: "sedan", name: "Sedan", count: 20 },
-    { id: "comerciales", name: "Comerciales", count: 14 },
-    { id: "minibus", name: "Minibús", count: 12 },
-    { id: "autobus", name: "Autobús", count: 10 },
-    { id: "ambulancias", name: "Ambulancias", count: 14 },
-    { id: "hibridos", name: "Híbridos y Eléctricos", count: 14 },
-  ]
+  // Calculate counts for each type from actual vehicle data
+  const calculateTypeCounts = (type) => {
+    return vehicles.filter(vehicle => vehicle.tipoVehiculo === type).length;
+  }
+  
+  // Calculate counts for each capacity from actual vehicle data
+  const calculateCapacityCounts = (capacity) => {
+    return vehicles.filter(vehicle => vehicle.capacidad === parseInt(capacity)).length;
+  }
 
-  const capacities = [
-    { id: "2personas", name: "2 Personas", count: 10 },
-    { id: "4personas", name: "4 Personas", count: 14 },
-    { id: "6personas", name: "6 Personas", count: 12 },
-    { id: "8omas", name: "8 o más", count: 16 },
-  ]
+  // Vehicle type objects with counts calculated from vehicle data
+  const formattedVehicleTypes = vehicleTypes.length > 0 
+    ? vehicleTypes.map(type => ({
+        id: type,
+        name: type.charAt(0).toUpperCase() + type.slice(1), // Capitalize first letter
+        count: calculateTypeCounts(type)
+      }))
+    : [
+        { id: "furgoneta", name: "Furgoneta", count: 90 },
+        { id: "suv", name: "SUV", count: 10 },
+        { id: "camion", name: "Camión", count: 15 },
+        { id: "sedan", name: "Sedan", count: 20 },
+        { id: "comerciales", name: "Comerciales", count: 14 },
+        { id: "minibus", name: "Minibús", count: 12 },
+        { id: "autobus", name: "Autobús", count: 10 },
+        { id: "ambulancias", name: "Ambulancias", count: 14 },
+        { id: "hibridos", name: "Híbridos y Eléctricos", count: 14 },
+      ];
+
+  // Capacity objects (convert from API format to UI format)
+  const formattedCapacities = capacities.length > 0
+    ? capacities.map(cap => ({
+        id: cap.toString(),
+        name: `${cap} Personas`,
+        count: calculateCapacityCounts(cap)
+      }))
+    : [
+        { id: "2", name: "2 Personas", count: 10 },
+        { id: "4", name: "4 Personas", count: 14 },
+        { id: "6", name: "6 Personas", count: 12 },
+        { id: "8", name: "8 o más", count: 16 },
+      ];
 
   const handleTypeClick = (typeId) => {
     let newSelectedTypes = [...selectedTypes]
@@ -96,7 +123,7 @@ const Sidebar = ({
       <div className="filter-section">
         <h3>TIPO</h3>
         <ul className="filter-list">
-          {vehicleTypes.map((type) => (
+          {formattedVehicleTypes.map((type) => (
             <li
               key={type.id}
               className={`filter-item ${selectedType === type.id ? "selected" : ""}`}
@@ -120,7 +147,7 @@ const Sidebar = ({
       <div className="filter-section">
         <h3>CAPACIDAD</h3>
         <ul className="filter-list">
-          {capacities.map((capacity) => (
+          {formattedCapacities.map((capacity) => (
             <li
               key={capacity.id}
               className={`filter-item ${selectedCapacity === capacity.id ? "selected" : ""}`}

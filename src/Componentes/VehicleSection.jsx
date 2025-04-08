@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import "../Estilos/VehicleSection.css"
 
@@ -17,110 +18,85 @@ import lexusLogo from "../Imagenes/Logo Lexus.png"
 import hyundaiLogo from "../Imagenes/Logo Toyota.png"
 import rangeLogo from "../Imagenes/Logo Range Rover.png"
 
+// Importar el servicio de vehículos
+import  VehicleService from "../Services/VehiculeService.ts"
+
 function VehicleSection() {
-  const vehicles = [
-    {
-      id: 1,
-      name: "Lexus ES 2022",
-      price: "$99.00/ day",
-      image: van,
-      logo: lexusLogo,
-      bgClass: "bg-white",
-    },
-    {
-      id: 2,
-      name: "Hyundai Sonata 2022",
-      price: "$99.00/ day",
-      image: truck,
-      logo: hyundaiLogo,
-      bgClass: "bg-mint",
-    },
-    {
-      id: 3,
-      name: "Toyota RAV 4 2020",
-      price: "$99.00/ day",
-      image: suv,
-      logo: toyotaLogo,
-      bgClass: "bg-white",
-    },
-    {
-      id: 4,
-      name: "Toyota Camry 2018",
-      price: "$99.00/ day",
-      image: minibus,
-      logo: toyotaLogo,
-      bgClass: "bg-mint",
-    },
-    {
-      id: 5,
-      name: "Range Rover 2022",
-      price: "$99.00/ day",
-      image: crossover,
-      logo: rangeLogo,
-      bgClass: "bg-mint",
-    },
-    {
-      id: 6,
-      name: "Lexus ES 2022",
-      price: "$99.00/ day",
-      image: sedan,
-      logo: lexusLogo,
-      bgClass: "bg-white",
-    },
-    {
-      id: 7,
-      name: "Toyota RAV 4 2020",
-      price: "$99.00/ day",
-      image: camion,
-      logo: toyotaLogo,
-      bgClass: "bg-mint",
-    },
-    {
-      id: 8,
-      name: "Toyota Camry 2",
-      price: "$99.00/ day",
-      image: pickup,
-      logo: toyotaLogo,
-      bgClass: "bg-white",
-    },
-  ]
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Imágenes por defecto para usar
+  const defaultImages = [van, truck, suv, minibus, crossover, sedan, camion, pickup];
+  const defaultLogos = [lexusLogo, hyundaiLogo, toyotaLogo, toyotaLogo, rangeLogo, lexusLogo, toyotaLogo, toyotaLogo];
+  
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        // Usar la función correcta del servicio
+        const response = await VehicleService.getAllVehicules();
+        
+        // Tomar solo los primeros 8 vehículos
+        const firstEightVehicles = response.slice(0, 8).map((vehicle, index) => ({
+          id: vehicle.id || index + 1,
+          name: vehicle.modelo || `Vehículo ${index + 1}`,
+          price: `$${vehicle.price || '99.00'}/ day`,
+          image: crossover, // Usar Autobus.png para todos
+          logo: defaultLogos[index % defaultLogos.length],
+          bgClass: index % 2 === 0 ? "bg-white" : "bg-mint",
+        }));
+        
+        setVehicles(firstEightVehicles);
+      } catch (error) {
+        console.error("Error fetching vehicles:", error);
+        setVehicles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVehicles();
+  }, []);
 
   return (
     <section className="cq-vehicles">
       <div className="cq-vehicles__container">
         <div className="cq-vehicles__header">
           <h2 className="cq-vehicles__title">¡Explora nuestros vehículos disponibles!</h2>
-          <Link to="/" className="cq-vehicles__catalog-link">
+          <Link to="/reservar" className="cq-vehicles__catalog-link">
             Ver todos los vehículos
           </Link>
         </div>
 
         <div className="cq-vehicles__grid">
-          {vehicles.map((vehicle) => (
-            <div 
-              key={vehicle.id} 
-              className={`cq-vehicles__card ${vehicle.bgClass === 'bg-mint' ? 'cq-vehicles__card--mint' : 'cq-vehicles__card--white'}`}
-            >
-              <div className="cq-vehicles__image-wrapper">
-                <img 
-                  src={vehicle.image} 
-                  alt={vehicle.name} 
-                  className="cq-vehicles__image"
-                />
-              </div>
-              <div className="cq-vehicles__info">
-                <div className="cq-vehicles__brand">
+          {loading ? (
+            <p>Cargando vehículos...</p>
+          ) : (
+            vehicles.map((vehicle) => (
+              <div 
+                key={vehicle.id} 
+                className={`cq-vehicles__card ${vehicle.bgClass === 'bg-mint' ? 'cq-vehicles__card--mint' : 'cq-vehicles__card--white'}`}
+              >
+                <div className="cq-vehicles__image-wrapper">
                   <img 
-                    src={vehicle.logo} 
-                    alt="Logo marca" 
-                    className="cq-vehicles__brand-logo"
+                    src={vehicle.image} 
+                    alt={vehicle.name} 
+                    className="cq-vehicles__image"
                   />
-                  <h3 className="cq-vehicles__name">{vehicle.name}</h3>
                 </div>
-                <p className="cq-vehicles__price">{vehicle.price}</p>
+                <div className="cq-vehicles__info">
+                  <div className="cq-vehicles__brand">
+                    <img 
+                      src={vehicle.logo} 
+                      alt="Logo marca" 
+                      className="cq-vehicles__brand-logo"
+                    />
+                    <h3 className="cq-vehicles__name">{vehicle.name}</h3>
+                  </div>
+                  <p className="cq-vehicles__price">{vehicle.price}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </section>

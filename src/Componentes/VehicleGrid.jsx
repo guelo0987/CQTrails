@@ -1,14 +1,49 @@
 import { useNavigate } from "react-router-dom"
 import "../Estilos/VehicleGrid.css"
 import { Fuel, Users, Settings } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import LoginPopUp from "./LoginPopUp"
+import Pagination from "./Pagination"
 
 const VehicleGrid = ({ vehicles }) => {
   const navigate = useNavigate()
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState(null)
   const isAuthenticated = localStorage.getItem("auth") === "true"
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(6)
+  const [totalPages, setTotalPages] = useState(1)
+  const [displayedVehicles, setDisplayedVehicles] = useState([])
+
+  // Calculate pagination when vehicles change
+  useEffect(() => {
+    if (!vehicles || vehicles.length === 0) {
+      setTotalPages(1)
+      setDisplayedVehicles([])
+      return
+    }
+    
+    const totalPagesCount = Math.ceil(vehicles.length / itemsPerPage)
+    setTotalPages(totalPagesCount)
+    
+    // Reset to page 1 if current page is now invalid
+    if (currentPage > totalPagesCount) {
+      setCurrentPage(1)
+    }
+    
+    // Update displayed vehicles
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = Math.min(startIndex + itemsPerPage, vehicles.length)
+    setDisplayedVehicles(vehicles.slice(startIndex, endIndex))
+  }, [vehicles, currentPage, itemsPerPage])
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber)
+    // Scroll to top of grid
+    window.scrollTo({ top: document.querySelector('.vehicle-grid').offsetTop - 100, behavior: 'smooth' })
+  }
 
   const handleReserveClick = (vehicle) => {
     if (!isAuthenticated) {
@@ -34,10 +69,19 @@ const VehicleGrid = ({ vehicles }) => {
     }
   }
 
+  // Si no hay vehículos, mostrar mensaje
+  if (!vehicles || vehicles.length === 0) {
+    return (
+      <div className="vehicle-grid empty">
+        <p>No se encontraron vehículos con los filtros seleccionados.</p>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="vehicle-grid">
-        {vehicles.map((vehicle) => (
+        {displayedVehicles.map((vehicle) => (
           <div key={vehicle.id} className="vehicle-card">
             <div className="vehicle-info">
               <div className="vehicle-header">
@@ -45,24 +89,27 @@ const VehicleGrid = ({ vehicles }) => {
                 <span className="vehicle-year">{vehicle.year}</span>
               </div>
               <p className="vehicle-type">{vehicle.type}</p>
+              {!vehicle.disponible && (
+                <p className="vehicle-not-available">No Disponible</p>
+              )}
             </div>
 
             <div className="vehicle-image-container">
-              <img src={vehicle.image} alt={vehicle.brand} />
+              <img src={vehicle.image} alt={`${vehicle.brand} ${vehicle.model}`} />
             </div>
 
             <div className="vehicle-details">
               <div className="detail-item">
                 <Users size={18} />
-                <span>{vehicle.seats} People</span>
+                <span>{vehicle.seats} {vehicle.seats === 1 ? "Persona" : "Personas"}</span>
               </div>
               <div className="detail-item">
                 <Settings size={18} />
-                <span className="transmission-badge">Manual</span>
+                <span className="transmission-badge">{vehicle.transmision || "Manual"}</span>
               </div>
               <div className="detail-item">
                 <Fuel size={18} />
-                <span>{vehicle.fuel}</span>
+                <span>{vehicle.combustible || "90L"}</span>
               </div>
             </div>
 
@@ -72,15 +119,22 @@ const VehicleGrid = ({ vehicles }) => {
                 <span className="period">/día</span>
               </div>
               <button 
-                className="reserve-button"
-                onClick={() => handleReserveClick(vehicle)}
+                className={`reserve-button ${!vehicle.disponible ? "disabled" : ""}`}
+                onClick={() => vehicle.disponible && handleReserveClick(vehicle)}
+                disabled={!vehicle.disponible}
               >
-                Reservar
+                {vehicle.disponible ? "Reservar" : "No Disponible"}
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
 
       <LoginPopUp 
         isOpen={isLoginOpen} 

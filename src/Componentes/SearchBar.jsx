@@ -1,47 +1,103 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import "../Estilos/SearchBar.css"
+import VehiculeService from '../Services/VehiculeService.ts'
 
-const SearchBar = ({ vehicles = [], filters, onFilterChange }) => {
-  // Extraer marcas únicas de los vehículos
-  const brands = vehicles ? [...new Set(vehicles.map(vehicle => vehicle?.brand))] : []
+const SearchBar = ({ filters, onFilterChange }) => {
+  const [models, setModels] = useState([])
+  const [years, setYears] = useState([])
+  const [loading, setLoading] = useState({
+    models: false,
+    years: false
+  })
+
+  // Fetch models when selected type changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!filters.type) {
+        setModels([])
+        return
+      }
+
+      try {
+        setLoading(prev => ({ ...prev, models: true }))
+        // Using type as brand since tipoVehiculo seems to contain the brand
+        const modelsList = await VehiculeService.getModelsByBrand(filters.type)
+        setModels(modelsList)
+      } catch (error) {
+        console.error('Error fetching models:', error)
+        setModels([])
+      } finally {
+        setLoading(prev => ({ ...prev, models: false }))
+      }
+    }
+
+    fetchModels()
+  }, [filters.type])
+
+  // Fetch years when type and model change
+  useEffect(() => {
+    const fetchYears = async () => {
+      if (!filters.type || !filters.model) {
+        setYears([])
+        return
+      }
+
+      try {
+        setLoading(prev => ({ ...prev, years: true }))
+        const yearsList = await VehiculeService.getYearsByModelAndBrand(filters.model, filters.type)
+        setYears(yearsList)
+      } catch (error) {
+        console.error('Error fetching years:', error)
+        setYears([])
+      } finally {
+        setLoading(prev => ({ ...prev, years: false }))
+      }
+    }
+
+    if (filters.model) {
+      fetchYears()
+    }
+  }, [filters.type, filters.model])
+
+  const handleModelChange = (e) => {
+    const model = e.target.value
+    onFilterChange('model', model)
+    // Reset year when model changes
+    onFilterChange('year', '')
+  }
 
   return (
     <div className="search-bar">
       <div className="search-dropdowns">
         <div className="search-dropdown">
-          <label>Marca</label>
-          <select>
-            <option value="">Todas las marcas</option>
-            {brands.map((brand, index) => (
-              brand && <option key={index} value={brand}>{brand}</option>
-            ))}
-          </select>
-        </div>
-        <div className="search-dropdown">
           <label>Modelo</label>
           <select 
             value={filters.model} 
-            onChange={(e) => onFilterChange('model', e.target.value)}
+            onChange={handleModelChange}
+            disabled={loading.models || !filters.type}
           >
-            <option value="">Todos</option>
-            <option value="RAV4">RAV4</option>
-            <option value="Corolla">Corolla</option>
-            <option value="Camry">Camry</option>
+            <option value="">Todos los modelos</option>
+            {models.map((model, index) => (
+              <option key={index} value={model}>{model}</option>
+            ))}
           </select>
+          {loading.models && <span className="loading-indicator">Cargando...</span>}
         </div>
         <div className="search-dropdown">
           <label>Año</label>
           <select 
             value={filters.year} 
             onChange={(e) => onFilterChange('year', e.target.value)}
+            disabled={loading.years || !filters.model}
           >
-            <option value="">Todos</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="2021">2021</option>
+            <option value="">Todos los años</option>
+            {years.map((year, index) => (
+              <option key={index} value={year.toString()}>{year}</option>
+            ))}
           </select>
+          {loading.years && <span className="loading-indicator">Cargando...</span>}
         </div>
       </div>
     </div>

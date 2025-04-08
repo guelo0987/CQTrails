@@ -2,7 +2,20 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  padding: 24px 0;
+  width: 100%;
+  min-height: 300px;
+}
+
+.vehicle-grid.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-size: 1.1rem;
 }
 
 .vehicle-card {
@@ -128,7 +141,27 @@
 }
 
 .reserve-button:hover {
-  background: #09A603;
+  background: #008c44;
+}
+
+.reserve-button.disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.vehicle-not-available {
+  color: #ff3333;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.results-info {
+  margin-bottom: 1rem;
+  color: #666;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
 }
 
 @media (max-width: 1024px) {
@@ -138,6 +171,12 @@
 }
 
 @media (max-width: 768px) {
+  .vehicle-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
   .vehicle-grid {
     grid-template-columns: 1fr;
   }

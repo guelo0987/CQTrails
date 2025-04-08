@@ -39,7 +39,7 @@ function VehicleSection() {
         const firstEightVehicles = response.slice(0, 8).map((vehicle, index) => ({
           id: vehicle.id || index + 1,
           name: vehicle.modelo || `Vehículo ${index + 1}`,
-          price: `$${vehicle.price || '99.00'}/ day`,
+          price: `$${vehicle.price || '99.00'}/ dady`,
           image: crossover, // Usar Autobus.png para todos
           logo: defaultLogos[index % defaultLogos.length],
           bgClass: index % 2 === 0 ? "bg-white" : "bg-mint",

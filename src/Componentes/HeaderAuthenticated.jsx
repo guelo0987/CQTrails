@@ -7,6 +7,8 @@ import "../Estilos/HeaderAuthenticated.css"
 import logo from "../Imagenes/Logo.svg"
 import { ChevronDown, Car, User, LogOut } from "lucide-react"
 import { authService } from "../Services/AuthService.ts"
+// Fix CartService import to use default export
+import CartService from "../Services/CartService.ts"
 
 function HeaderAuthenticated({ onLogout }) {
   const navigate = useNavigate()
@@ -18,16 +20,78 @@ function HeaderAuthenticated({ onLogout }) {
   const dropdownRef = useRef(null)
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart')) || []
-    setCartItems(savedCart)
-    setCurrentUser(authService.getCurrentUser())
+    // Get current user
+    const user = authService.getCurrentUser()
+    setCurrentUser(user)
+    
+    // Fetch cart items using CartService
+    if (user) {
+      fetchCartItems()
+    } else {
+      // Fallback to localStorage if no user is logged in
+      const savedCart = JSON.parse(localStorage.getItem('cart')) || []
+      setCartItems(savedCart)
+    }
   }, [])
+  
+  // Function to fetch cart items
+  const fetchCartItems = async () => {
+    try {
+      // Get the current user's ID
+      const user = authService.getCurrentUser();
+      console.log("Current user:", user); // Debug log to see user object structure
+      
+      let userId = null;
+      
+      // Check different property names for ID
+      if (user && user.idUsuario) {
+        userId = user.idUsuario;
+      } else if (user && user.ID) {
+        userId = user.ID;
+      } else if (user && user.id) {
+        userId = user.id;
+      }
+      
+      if (userId) {
+        console.log(`Fetching cart items for user ID: ${userId}`);
+        const items = await CartService.getUserCartItems(userId);
+        console.log("Cart items fetched:", items);
+        
+        // Format cart items if needed
+        const formattedItems = Array.isArray(items) ? items.map(item => ({
+          ...item,
+          // Ensure these properties exist
+          price: item.price || 0,
+          cantidad: item.cantidad || 1,
+          subTotal: item.subTotal || 0,
+          vehiculo: item.vehiculo || { 
+            modelo: 'Vehículo no disponible',
+            tipoVehiculo: 'Tipo no disponible' 
+          }
+        })) : [];
+        
+        setCartItems(formattedItems);
+      } else {
+        console.error("User ID not available", user);
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
+      setCartItems([]);
+    }
+  }
 
   // Add effect to update user when auth changes
   useEffect(() => {
     // Function to update the current user
     const updateCurrentUser = () => {
-      setCurrentUser(authService.getCurrentUser())
+      const user = authService.getCurrentUser()
+      setCurrentUser(user)
+      
+      // Refresh cart items when user changes
+      if (user) {
+        fetchCartItems()
+      }
     }
     
     // Listen for storage events (like auth status changes)
@@ -104,7 +168,7 @@ function HeaderAuthenticated({ onLogout }) {
             <div className="cartheader-container"
                  onMouseEnter={() => setShowCartPreview(true)}
                  onMouseLeave={() => setShowCartPreview(false)}>
-              <Link to="/micarrito" className="cart-link">
+              <Link to="/mi-carrito" className="cart-link">
                 <Car size={24} />
                 {cartItems.length > 0 && (
                   <span className="cart-count">{cartItems.length}</span>

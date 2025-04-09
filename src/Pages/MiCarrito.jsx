@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import "react-datepicker/dist/react-datepicker.css"
-import Header from "../Componentes/HeaderAuthenticated"
+import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import CartItem from "../Componentes/CartItem"
 import CartSummary from "../Componentes/CartSummary"
@@ -99,8 +99,8 @@ export default function MiCarrito() {
   }
 
   return (
-    <div className="mi-reservacion-container">
-      <Header />
+    <div className="micarrito-container">
+      <HeaderAuthenticated />
 
       <main className="mi-reservacion-content">
         <div className="title-bar">

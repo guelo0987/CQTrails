@@ -34,5 +34,52 @@ export const notificationService = {
   
   dismissLoading: (toastId: string) => {
     toast.dismiss(toastId);
+  },
+
+  // Funciones específicas para autenticación
+  auth: {
+    loginSuccess: () => {
+      toast.success('Inicio de sesión exitoso', {
+        icon: '✅',
+        style: {
+          background: '#059669',
+          color: '#fff',
+        },
+        duration: 3000,
+      });
+    },
+    
+    registerSuccess: () => {
+      toast.success('Cuenta creada exitosamente', {
+        icon: '✅',
+        style: {
+          background: '#059669',
+          color: '#fff',
+        },
+        duration: 3000,
+      });
+    },
+    
+    logoutSuccess: () => {
+      toast.success('Sesión cerrada exitosamente', {
+        icon: '✅',
+        style: {
+          background: '#059669',
+          color: '#fff',
+        },
+        duration: 3000,
+      });
+    },
+    
+    passwordResetSent: () => {
+      toast.success('Se ha enviado un enlace de recuperación a tu correo', {
+        icon: '✉️',
+        style: {
+          background: '#2563EB',
+          color: '#fff',
+        },
+        duration: 4000,
+      });
+    }
   }
 };

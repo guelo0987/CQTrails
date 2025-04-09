@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import Header from "../Componentes/HeaderAuthenticated"
+import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import VehicleGallery from "../Componentes/VehicleGallery"
 import VehicleSpecs from "../Componentes/VehicleSpecs"
@@ -79,7 +79,7 @@ export default function AgregarReserva() {
 
   return (
     <div className="agregar-reserva-container">
-      <Header />
+      <HeaderAuthenticated />
       <main className="agregar-reserva-content">
         <div className="vehicle-details-container">
           <VehicleGallery vehicle={selectedVehicle} />

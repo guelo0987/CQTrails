@@ -5,6 +5,7 @@ import logo from "../Imagenes/Logo.svg"
 import LoginPopUp from "./LoginPopUp"
 import RegisterPopUp from "./RegisterPopUp"
 import ForgotPasswordPopUp from "./ForgotPasswordPopUp"
+import { authService } from "../Services/AuthService.ts"
 
 function Header({ onLoginClick }) {
   const navigate = useNavigate()
@@ -13,6 +14,12 @@ function Header({ onLoginClick }) {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false)
   const [redirectAfterLogin, setRedirectAfterLogin] = useState(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    setIsAuthenticated(authService.isAuthenticated())
+  }, [])
 
   const toggleDropdown = (e) => {
     e.preventDefault()
@@ -55,8 +62,23 @@ function Header({ onLoginClick }) {
   const handleCloseRegister = () => setIsRegisterOpen(false)
   const handleCloseForgotPassword = () => setIsForgotPasswordOpen(false)
 
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true)
+    setIsLoginOpen(false)
+    
+    if (redirectAfterLogin) {
+      navigate(redirectAfterLogin)
+      setRedirectAfterLogin(null)
+    }
+  }
+
+  const handleLogout = () => {
+    authService.handleLogout()
+    setIsAuthenticated(false)
+  }
+
   const handleNavigation = (path, requiresAuth = false) => {
-    if (requiresAuth) {
+    if (requiresAuth && !isAuthenticated) {
       handleLoginClick(path)
       return
     }
@@ -122,7 +144,7 @@ function Header({ onLoginClick }) {
                         Reservar
                       </button>
                       <button 
-                        onClick={() => handleNavigation("/historial", true)} 
+                        onClick={() => handleNavigation("/historial", !isAuthenticated)} 
                         className="cq-header__dropdown-item"
                       >
                         Historial de Reservaciones
@@ -138,18 +160,34 @@ function Header({ onLoginClick }) {
             </nav>
 
             <div className="cq-header__auth-buttons">
-              <button 
-                className="cq-header__auth-button cq-header__auth-button--login" 
-                onClick={() => handleLoginClick()}
-              >
-                Iniciar Sesión
-              </button>
-              <button 
-                className="cq-header__auth-button cq-header__auth-button--register" 
-                onClick={handleRegisterClick}
-              >
-                Crear Cuenta
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <span className="cq-header__user-greeting">
+                    Hola, {authService.getCurrentUser()?.nombre || 'Usuario'}
+                  </span>
+                  <button 
+                    className="cq-header__auth-button cq-header__auth-button--logout" 
+                    onClick={handleLogout}
+                  >
+                    Cerrar Sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className="cq-header__auth-button cq-header__auth-button--login" 
+                    onClick={() => handleLoginClick()}
+                  >
+                    Iniciar Sesión
+                  </button>
+                  <button 
+                    className="cq-header__auth-button cq-header__auth-button--register" 
+                    onClick={handleRegisterClick}
+                  >
+                    Crear Cuenta
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -162,12 +200,14 @@ function Header({ onLoginClick }) {
             onClose={handleCloseLogin}
             onForgotPassword={handleForgotPasswordClick}
             redirectAfterLogin={redirectAfterLogin}
+            onLoginSuccess={handleLoginSuccess}
           />
 
           <RegisterPopUp 
             isOpen={isRegisterOpen} 
             onClose={handleCloseRegister}
             onSwitchToLogin={handleLoginClick}
+            onRegisterSuccess={handleLoginSuccess}
           />
 
           <ForgotPasswordPopUp 

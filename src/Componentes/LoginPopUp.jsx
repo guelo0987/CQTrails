@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { XIcon, Eye, EyeOff } from "lucide-react";
 import "../Estilos/auth.css";
 import logo from "../Imagenes/Logo.svg";
+import { authService } from "../Services/AuthService.ts";
+import { notificationService } from "../Utils/notificationService.ts";
 
-function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
+function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess, redirectAfterLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
@@ -12,6 +14,8 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   if (!isOpen) return null;
 
@@ -41,6 +45,7 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
       ...prev,
       [name]: value
     }));
+    
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[name]) {
       setErrors(prev => ({
@@ -48,19 +53,63 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
         [name]: ""
       }));
     }
+
+    // Limpiar error general de login
+    if (loginError) {
+      setLoginError("");
+    }
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    
     if (validateForm()) {
-      localStorage.setItem("auth", "true");
+      setIsLoading(true);
+      setLoginError("");
       
-      // Si existe un callback de login exitoso, ejecutarlo
-      if (onLoginSuccess) {
-        onLoginSuccess();
-      } else {
+      try {
+        const loginData = {
+          email: formData.email,
+          passwordHash: formData.password
+        };
+        
+        console.log("Attempting login with:", loginData);
+        
+        await authService.login(loginData);
+        
+        // Mostrar notificación de éxito
+        notificationService.auth.loginSuccess();
+        
+        // Cerrar el popup
         onClose();
-        navigate("/home-auth");
+        
+        // Si existe un callback de login exitoso, ejecutarlo
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+        
+        // Redireccionar a la página especificada o a la página principal autenticada
+        if (redirectAfterLogin) {
+          navigate(redirectAfterLogin);
+        } else {
+          navigate("/home-auth");
+        }
+      } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+        
+        if (error.response && error.response.data && error.response.data.message) {
+          setLoginError(error.response.data.message);
+        } else if (error.response && error.response.data) {
+          // Manejar errores de validación que puedan venir en diferentes formatos
+          const errMsg = typeof error.response.data === 'string' 
+            ? error.response.data 
+            : 'Credenciales inválidas. Por favor, verifica tu email y contraseña.';
+          setLoginError(errMsg);
+        } else {
+          setLoginError("Error al iniciar sesión. Por favor, intente de nuevo.");
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -79,6 +128,12 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
             <h2 className="auth-title">Iniciar Sesión</h2>
 
             <form onSubmit={handleLogin}>
+              {loginError && (
+                <div className="error-banner">
+                  {loginError}
+                </div>
+              )}
+              
               <div className="form-group">
                 <label className="form-label">Correo Electrónico</label>
                 <input 
@@ -88,6 +143,7 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Dirección de correo" 
+                  disabled={isLoading}
                 />
                 {errors.email && <span className="error-message">{errors.email}</span>}
               </div>
@@ -102,11 +158,13 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Tu contraseña" 
+                    disabled={isLoading}
                   />
                   <button 
                     type="button"
                     className="password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -114,14 +172,22 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess }) {
                 {errors.password && <span className="error-message">{errors.password}</span>}
               </div>
 
-              <button type="submit" className="login-button">
-                Ingresar
+              <button 
+                type="submit" 
+                className="login-button"
+                disabled={isLoading}
+              >
+                {isLoading ? "Iniciando sesión..." : "Ingresar"}
               </button>
             </form>
 
             <div className="login-link-container">
               <p className="forgot-password-text">¿Olvidaste tu Contraseña?</p>
-              <button className="forgot-password-link" onClick={onForgotPassword}>
+              <button 
+                className="forgot-password-link" 
+                onClick={onForgotPassword}
+                disabled={isLoading}
+              >
                 Recuperar Contraseña
               </button>
             </div>

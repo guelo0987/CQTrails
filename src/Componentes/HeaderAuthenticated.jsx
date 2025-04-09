@@ -6,18 +6,37 @@ import CartPreview from './CartPreview'
 import "../Estilos/HeaderAuthenticated.css"
 import logo from "../Imagenes/Logo.svg"
 import { ChevronDown, Car, User, LogOut } from "lucide-react"
+import { authService } from "../Services/AuthService.ts"
 
-function HeaderAuthenticated() {
+function HeaderAuthenticated({ onLogout }) {
   const navigate = useNavigate()
   const [showCartPreview, setShowCartPreview] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [cartItems, setCartItems] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
   const profileRef = useRef(null)
   const dropdownRef = useRef(null)
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem('cart')) || []
     setCartItems(savedCart)
+    setCurrentUser(authService.getCurrentUser())
+  }, [])
+
+  // Add effect to update user when auth changes
+  useEffect(() => {
+    // Function to update the current user
+    const updateCurrentUser = () => {
+      setCurrentUser(authService.getCurrentUser())
+    }
+    
+    // Listen for storage events (like auth status changes)
+    window.addEventListener('storage', updateCurrentUser)
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', updateCurrentUser)
+    }
   }, [])
 
   // Cerrar el dropdown cuando se hace clic fuera de él
@@ -38,13 +57,20 @@ function HeaderAuthenticated() {
   }, [profileRef, dropdownRef])
 
   const handleLogout = () => {
-    localStorage.removeItem("auth")
-    navigate("/")
+    if (onLogout) {
+      onLogout()
+    } else {
+      authService.handleLogout()
+    }
   }
 
   const toggleProfileDropdown = () => {
     setShowProfileDropdown(!showProfileDropdown)
   }
+
+  const userName = currentUser?.nombre 
+    ? `${currentUser.nombre} ${currentUser.apellido || ''}`
+    : 'Usuario';
 
   return (
     <div className="header-auth">
@@ -95,6 +121,7 @@ function HeaderAuthenticated() {
               >
                 <div className="profile-link">
                   <User size={24} />
+                  <span className="user-name">{userName}</span>
                 </div>
               </div>
               {showProfileDropdown && (

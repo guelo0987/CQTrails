@@ -8,13 +8,13 @@ import WhyChooseUs from "../Componentes/WhyChooseUs"
 import Footer from "../Componentes/Footer"
 import "../Estilos/Home.css"
 import { useNavigate } from 'react-router-dom'
+import { authService } from '../Services/AuthService.ts'
 
 function HomeAuthenticated() {
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    localStorage.removeItem("auth")
-    navigate("/")
+    authService.handleLogout()
   }
 
   return (

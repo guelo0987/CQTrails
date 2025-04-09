@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import PreFacturaPDF from '../Componentes/PreFacturaPDF'
-import Header from "../Componentes/HeaderAuthenticated"
+import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import "../Estilos/HistorialReservaciones.css"
 
@@ -98,7 +98,7 @@ export default function HistorialReservaciones() {
 
   return (
     <div className="historial-container">
-      <Header />
+      <HeaderAuthenticated />
 
       <main className="historial-content">
         <h1 className="page-title">Historial de Reservaciones</h1>

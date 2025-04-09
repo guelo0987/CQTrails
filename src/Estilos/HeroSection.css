@@ -148,19 +148,26 @@
 }
 
 .cq-hero__search-button {
-  background: none;
+  background-color: #09A603;
   border: none;
-  color: #666;
+  color: white;
   cursor: pointer;
-  padding: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease;
+  gap: 8px;
+  transition: background-color 0.2s ease;
 }
 
 .cq-hero__search-button:hover {
-  color: #09A603;
+  background-color: #088802;
+}
+
+.cq-hero__search-button-text {
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 992px) {

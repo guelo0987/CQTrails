@@ -71,6 +71,21 @@
   color: #555;
 }
 
+.no-results {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  margin-top: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.no-results p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
 @media (max-width: 992px) {
   .vehicle-content {
     flex-direction: column;

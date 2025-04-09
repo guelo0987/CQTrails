@@ -95,7 +95,14 @@ const VehicleGrid = ({ vehicles }) => {
             </div>
 
             <div className="vehicle-image-container">
-              <img src={vehicle.image} alt={`${vehicle.brand} ${vehicle.model}`} />
+              <img 
+                src={vehicle.image} 
+                alt={`${vehicle.brand} ${vehicle.model}`} 
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://placehold.co/300x200/CCCCCC/666666?text=No+Image";
+                }}
+              />
             </div>
 
             <div className="vehicle-details">

@@ -7,6 +7,7 @@ import VehiculeService from '../Services/VehiculeService.ts'
 const HeroSection = ({ vehicles = [] }) => {
   const navigate = useNavigate()
   const [brands, setBrands] = useState([])
+  const [allModels, setAllModels] = useState([])
   const [models, setModels] = useState([])
   const [years, setYears] = useState([])
   const [selectedBrand, setSelectedBrand] = useState('')
@@ -19,6 +20,28 @@ const HeroSection = ({ vehicles = [] }) => {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef(null)
+
+  // Load all vehicles on component mount to have a complete dataset
+  useEffect(() => {
+    const loadAllVehicles = async () => {
+      try {
+        setIsLoading(true)
+        const vehiclesData = await VehiculeService.getAllVehicules()
+        
+        // Extract unique models from all vehicles
+        const uniqueModels = Array.from(new Set(vehiclesData.map(v => v.modelo)))
+          .sort((a, b) => a.localeCompare(b))
+        
+        setAllModels(uniqueModels)
+      } catch (error) {
+        console.error('Error loading all vehicles:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadAllVehicles()
+  }, [])
 
   // Load all brands when component mounts
   useEffect(() => {
@@ -40,38 +63,43 @@ const HeroSection = ({ vehicles = [] }) => {
     loadBrands()
   }, [])
 
-  // Load models when brand changes
+  // Load models when brand changes or show all models if no brand is selected
   useEffect(() => {
     const loadModels = async () => {
-      if (!selectedBrand) return
-      
       try {
         setIsLoading(true)
-        const modelsData = await VehiculeService.getModelsByBrand(selectedBrand)
-        setModels(modelsData)
-        if (modelsData.length > 0) {
-          setSelectedModel(modelsData[0])
+        if (!selectedBrand || selectedBrand === '') {
+          // If no brand selected, use all models
+          setModels(allModels)
         } else {
-          setSelectedModel('')
+          // Otherwise filter by brand
+          const modelsData = await VehiculeService.getModelsByBrand(selectedBrand)
+          setModels(modelsData)
         }
       } catch (error) {
         console.error('Error loading models:', error)
+        // Use allModels as fallback if API fails
+        setModels(allModels)
       } finally {
         setIsLoading(false)
       }
     }
     
     loadModels()
-  }, [selectedBrand])
+  }, [selectedBrand, allModels])
 
   // Load years when model changes
   useEffect(() => {
     const loadYears = async () => {
-      if (!selectedBrand || !selectedModel) return
+      if (!selectedModel) return
       
       try {
         setIsLoading(true)
-        const yearsData = await VehiculeService.getYearsByModelAndBrand(selectedModel, selectedBrand)
+        // Try to get years for the model, using the brand if available
+        const yearsData = await VehiculeService.getYearsByModelAndBrand(
+          selectedModel, 
+          selectedBrand || '' // Pass empty string if no brand selected
+        )
         setYears(yearsData)
         if (yearsData.length > 0) {
           setSelectedYear(yearsData[0])
@@ -80,6 +108,10 @@ const HeroSection = ({ vehicles = [] }) => {
         }
       } catch (error) {
         console.error('Error loading years:', error)
+        // Set some default years if there's an error
+        const currentYear = new Date().getFullYear()
+        setYears([currentYear, currentYear - 1, currentYear - 2])
+        setSelectedYear(currentYear.toString())
       } finally {
         setIsLoading(false)
       }
@@ -88,23 +120,25 @@ const HeroSection = ({ vehicles = [] }) => {
     loadYears()
   }, [selectedBrand, selectedModel])
 
-  // Handle search input changes and generate suggestions
+  // Handle search input changes and generate suggestions from all available data
   const handleSearchChange = (e) => {
     const value = e.target.value
     setSearchTerm(value)
     
     if (value.length > 1) {
-      // Prioritize model suggestions
-      const modelSuggestions = models
+      // Create suggestions from models, brands, and years
+      
+      // Include all models that match the search term
+      const modelSuggestions = allModels
         .filter(model => model.toLowerCase().includes(value.toLowerCase()))
         .map(model => ({ type: 'model', value: model }))
       
-      // Add brand suggestions as secondary options
+      // Add brand suggestions
       const brandSuggestions = brands
         .filter(brand => brand.toLowerCase().includes(value.toLowerCase()))
         .map(brand => ({ type: 'brand', value: brand }))
       
-      // Add year suggestions as tertiary options
+      // Add year suggestions
       const yearSuggestions = years
         .filter(year => year.toString().includes(value))
         .map(year => ({ type: 'year', value: year.toString() }))
@@ -135,16 +169,6 @@ const HeroSection = ({ vehicles = [] }) => {
         const brandsForModel = await VehiculeService.getBrandsForModel(suggestion.value)
         if (brandsForModel && brandsForModel.length > 0) {
           setSelectedBrand(brandsForModel[0])
-          
-          // Now load years for this model and brand
-          const yearsData = await VehiculeService.getYearsByModelAndBrand(
-            suggestion.value, 
-            brandsForModel[0]
-          )
-          setYears(yearsData)
-          if (yearsData.length > 0) {
-            setSelectedYear(yearsData[0])
-          }
         }
       } else if (suggestion.type === 'brand') {
         setSelectedBrand(suggestion.value)
@@ -175,29 +199,44 @@ const HeroSection = ({ vehicles = [] }) => {
     }
   }, [])
 
+  // Handle submit by navigating to reservation page with all search parameters
   const handleSubmit = (e) => {
     e.preventDefault()
-    setIsLoading(true)
-    setHasSearched(true)
     
-    // Simulate search results with placeholder images
-    // In a real implementation, you would call your API with the selected filters
-    setTimeout(() => {
-      const results = vehicles.filter(vehicle => 
-        (!selectedBrand || vehicle.modelo.includes(selectedBrand)) &&
-        (!selectedModel || vehicle.modelo.includes(selectedModel)) &&
-        (!selectedYear || vehicle.ano === parseInt(selectedYear))
-      )
-      
-      // Add placeholder image if not present
-      const resultsWithImages = results.map(vehicle => ({
-        ...vehicle,
-        Image_url: vehicle.Image_url || 'https://via.placeholder.com/300x200?text=No+Image+Available'
-      }))
-      
-      setSearchResults(resultsWithImages)
-      setIsLoading(false)
-    }, 500)
+    // Prepare filter parameters, ensuring they have valid values
+    const searchTermValue = searchTerm.trim();
+    const modelValue = selectedModel || '';
+    const brandValue = selectedBrand || '';
+    const yearValue = selectedYear || '';
+    
+    // Special handling for search term: use it as model if no model is selected
+    const modelToUse = modelValue || searchTermValue;
+    
+    const filters = {
+      brand: brandValue,
+      model: modelToUse,
+      year: yearValue,
+      searchTerm: searchTermValue,
+      searchAllFields: true
+    }
+    
+    // Only include non-empty values to prevent unnecessary filtering
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => v !== '')
+    );
+    
+    // Add searchAllFields back if it was removed
+    if (!cleanFilters.searchAllFields) {
+      cleanFilters.searchAllFields = true;
+    }
+    
+    // Navigate to the reservar page with the search parameters
+    navigate('/reservar', {
+      state: {
+        filters: cleanFilters,
+        fromHeroSection: true // Flag to indicate this navigation came from HeroSection
+      }
+    })
   }
 
   return (
@@ -343,20 +382,23 @@ const HeroSection = ({ vehicles = [] }) => {
               {isLoading ? (
                 <span className="cq-hero__loading-spinner"></span>
               ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
+                <>
+                  <span className="cq-hero__search-button-text">Buscar</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </>
               )}
             </button>
           </div>

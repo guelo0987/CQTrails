@@ -43,6 +43,15 @@ class AuthService {
             console.log('Sending login request with:', loginData);
             
             const response = await axios.post(`${this.baseURL}${endpoints.auth.login}`, loginData);
+            
+            console.log('Login response from server:', response.status);
+            console.log('Login response data (raw):', response.data);
+            console.log('Login response data structure:', {
+                token: !!response.data.token,
+                user: response.data.user ? typeof response.data.user : 'missing',
+                role: response.data.role,
+                dataKeys: Object.keys(response.data)
+            });
 
             const data = response.data;
             
@@ -197,15 +206,39 @@ class AuthService {
      * @returns User data object or null
      */
     getCurrentUser() {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            try {
-                return JSON.parse(userStr);
-            } catch (e) {
+        try {
+            const userStr = window.localStorage.getItem('user');
+            const token = window.localStorage.getItem('token');
+            const auth = window.localStorage.getItem('auth');
+            
+            console.log('Getting current user, auth state:', auth);
+            console.log('Token exists:', !!token);
+            
+            if (!userStr || !token) {
+                console.log('Missing user data or token in localStorage');
                 return null;
             }
+            
+            try {
+                const userData = JSON.parse(userStr);
+                console.log('User data retrieved:', userData.idUsuario ? `ID: ${userData.idUsuario}` : 'No ID found');
+                return userData;
+            } catch (e) {
+                console.error('Error parsing user data from localStorage:', e);
+                
+                // Try to clear and reset based on token
+                if (token && auth === 'true') {
+                    console.log('Attempting to recover user session via token');
+                    // In a real app, you might try to refresh the user data using the token
+                    // But for now, we'll just clear the invalid data
+                    localStorage.removeItem('user');
+                }
+                return null;
+            }
+        } catch (e) {
+            console.error('Unexpected error in getCurrentUser:', e);
+            return null;
         }
-        return null;
     }
 
     /**
@@ -230,11 +263,71 @@ class AuthService {
      */
     private setAuthData(data: any) {
         console.log('Setting auth data:', data);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('role', data.role);
-        localStorage.setItem('auth', 'true');
-        console.log('Auth state after setting:', localStorage.getItem('auth'));
+        try {
+            // Ensure all data is valid before setting
+            if (!data.token) {
+                console.error('Missing token in auth data');
+                throw new Error('Token de autenticación faltante');
+            }
+            
+            // Extract user data or create default if missing
+            let userData = data.user || {};
+            
+            // Log the raw user data
+            console.log('Raw user data from server:', userData);
+            
+            // Extract user ID from token if it's missing in user data
+            if (!userData.idUsuario) {
+                try {
+                    // Decode JWT token to see if it contains the ID
+                    const base64Url = data.token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(window.atob(base64));
+                    
+                    // Check if the payload contains an Id claim
+                    if (payload.Id) {
+                        console.log('Extracted user ID from token:', payload.Id);
+                        userData = {
+                            ...userData,
+                            idUsuario: parseInt(payload.Id)
+                        };
+                    }
+                } catch (tokenError) {
+                    console.error('Error extracting user ID from token:', tokenError);
+                }
+            }
+            
+            // If we still don't have a user ID, check if there's anything in the user data that looks like an ID
+            if (!userData.idUsuario && userData.email) {
+                // This is a fallback - we'll at least store what we have
+                console.log('Creating user object with available data');
+            }
+            
+            // Save the data even if user ID is missing - better than nothing
+            window.localStorage.setItem('token', data.token);
+            window.localStorage.setItem('user', JSON.stringify(userData));
+            window.localStorage.setItem('role', data.role || 'Cliente');
+            window.localStorage.setItem('auth', 'true');
+            
+            // Verify the data was saved correctly
+            const savedUser = window.localStorage.getItem('user');
+            const savedToken = window.localStorage.getItem('token');
+            const savedAuth = window.localStorage.getItem('auth');
+            
+            console.log('Auth state after setting:', savedAuth);
+            console.log('User data verification:', savedUser);
+            console.log('Token verification:', savedToken ? 'Token saved' : 'Token not saved');
+            
+            if (!savedUser || !savedToken || savedAuth !== 'true') {
+                console.error('Failed to save auth data to localStorage');
+                throw new Error('Error al guardar los datos de autenticación');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error setting auth data:', error);
+            throw error;
+        }
     }
 
     /**

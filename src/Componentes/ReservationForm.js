@@ -1,25 +1,66 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import DatePicker, { registerLocale } from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import "../Estilos/ReservationForm.css"
 import es from 'date-fns/locale/es'
+import axios from 'axios'
+import { API_BASE_URL } from '../API/Endpoints.ts'
 
 registerLocale('es', es)
 
-export default function ReservationForm({ price, onSubmit }) {
+export default function ReservationForm({ price, onSubmit, isLoading = false }) {
   /* eslint-disable-next-line no-unused-vars */
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     startDate: new Date(),
-    startTime: "08:00 AM",
+    startTime: "08:00",
     endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
-    endTime: "08:00 AM",
-    quantity: 1
+    endTime: "08:00",
+    quantity: 1,
+    cityStartId: 1,
+    cityEndId: 1
   })
   const [showSuccess, setShowSuccess] = useState(false)
-  const [startCity, setStartCity] = useState("Ciudad Central")
-  const [endCity, setEndCity] = useState("Pista Semarang")
+  const [startCity, setStartCity] = useState("1")
+  const [endCity, setEndCity] = useState("1")
+  const [cities, setCities] = useState([])
+  const [loadingCities, setLoadingCities] = useState(false)
+
+  // Cargar las ciudades al montar el componente
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        setLoadingCities(true)
+        const response = await axios.get(`${API_BASE_URL}api/Ciudades`)
+        setCities(response.data)
+        
+        // Si hay ciudades disponibles, establecer las predeterminadas
+        if (response.data && response.data.length > 0) {
+          setStartCity(response.data[0].idCiudad.toString())
+          setEndCity(response.data[0].idCiudad.toString())
+          setFormData(prev => ({
+            ...prev,
+            cityStartId: response.data[0].idCiudad,
+            cityEndId: response.data[0].idCiudad
+          }))
+        }
+      } catch (error) {
+        console.error("Error al cargar ciudades:", error)
+        // Establecer ciudades predeterminadas en caso de error
+        setCities([
+          { idCiudad: 1, nombre: "San José" },
+          { idCiudad: 2, nombre: "Alajuela" },
+          { idCiudad: 3, nombre: "Cartago" },
+          { idCiudad: 4, nombre: "Heredia" }
+        ])
+      } finally {
+        setLoadingCities(false)
+      }
+    }
+    
+    fetchCities()
+  }, [])
 
   const handleDateChange = (date, field) => {
     setFormData(prev => ({
@@ -43,46 +84,71 @@ export default function ReservationForm({ price, onSubmit }) {
     }))
   }
 
+  const handleCityChange = (e, isStart) => {
+    const cityId = parseInt(e.target.value)
+    
+    if (isStart) {
+      setStartCity(e.target.value)
+      setFormData(prev => ({
+        ...prev,
+        cityStartId: cityId
+      }))
+    } else {
+      setEndCity(e.target.value)
+      setFormData(prev => ({
+        ...prev,
+        cityEndId: cityId
+      }))
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     
     // Formatear los datos antes de enviarlos
     const formattedData = {
-      startDate: formData.startDate,
+      startDate: formatDate(formData.startDate),
       startTime: formData.startTime,
-      endDate: formData.endDate,
+      endDate: formatDate(formData.endDate),
       endTime: formData.endTime,
-      quantity: formData.quantity
+      quantity: parseInt(formData.quantity, 10),
+      cityStartId: parseInt(formData.cityStartId, 10),
+      cityEndId: parseInt(formData.cityEndId, 10)
     }
+
+    // Log the formatted data to verify values
+    console.log('Reservation form data (formatted):', formattedData);
+    console.log('Raw form data for debugging:', {
+      startDate: formData.startDate, 
+      endDate: formData.endDate,
+      cityStartId: formData.cityStartId,
+      cityEndId: formData.cityEndId
+    });
 
     // Llamar a la función onSubmit que contiene la lógica del SweetAlert
     onSubmit(formattedData)
   }
 
-  // City options
-  const cityOptions = [
-    { value: "Ciudad Central", label: "Ciudad Central" },
-    { value: "Pista Semarang", label: "Pista Semarang" },
-    { value: "San José", label: "San José" },
-    { value: "Cartago", label: "Cartago" },
-    { value: "Alajuela", label: "Alajuela" },
-    { value: "Heredia", label: "Heredia" },
-    { value: "Limón", label: "Limón" },
-    { value: "Puntarenas", label: "Puntarenas" },
-  ]
+  // Función para formatear la fecha en formato YYYY-MM-DD
+  const formatDate = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
 
   // Time options
   const timeOptions = [
-    { value: "08:00 AM", label: "08:00 AM" },
-    { value: "09:00 AM", label: "09:00 AM" },
-    { value: "10:00 AM", label: "10:00 AM" },
-    { value: "11:00 AM", label: "11:00 AM" },
-    { value: "12:00 PM", label: "12:00 PM" },
-    { value: "01:00 PM", label: "01:00 PM" },
-    { value: "02:00 PM", label: "02:00 PM" },
-    { value: "03:00 PM", label: "03:00 PM" },
-    { value: "04:00 PM", label: "04:00 PM" },
-    { value: "05:00 PM", label: "05:00 PM" },
+    { value: "08:00", label: "08:00 AM" },
+    { value: "09:00", label: "09:00 AM" },
+    { value: "10:00", label: "10:00 AM" },
+    { value: "11:00", label: "11:00 AM" },
+    { value: "12:00", label: "12:00 PM" },
+    { value: "13:00", label: "01:00 PM" },
+    { value: "14:00", label: "02:00 PM" },
+    { value: "15:00", label: "03:00 PM" },
+    { value: "16:00", label: "04:00 PM" },
+    { value: "17:00", label: "05:00 PM" },
   ]
 
   return (
@@ -96,10 +162,15 @@ export default function ReservationForm({ price, onSubmit }) {
               <div className="selector-container">
                 <label className="selector-label">Ciudad</label>
                 <div className="selector-wrapper">
-                  <select className="selector-input" value={startCity} onChange={(e) => setStartCity(e.target.value)}>
-                    {cityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                  <select 
+                    className="selector-input" 
+                    value={startCity} 
+                    onChange={(e) => handleCityChange(e, true)}
+                    disabled={loadingCities || isLoading}
+                  >
+                    {cities.map((city) => (
+                      <option key={city.idCiudad} value={city.idCiudad.toString()}>
+                        {city.nombre}
                       </option>
                     ))}
                   </select>
@@ -134,6 +205,7 @@ export default function ReservationForm({ price, onSubmit }) {
                       className="selector-input date-input"
                       popperClassName="date-picker-popper"
                       popperPlacement="bottom-start"
+                      disabled={isLoading}
                     />
                     <div className="selector-icon">
                       <svg
@@ -165,6 +237,7 @@ export default function ReservationForm({ price, onSubmit }) {
                       className="selector-input" 
                       value={formData.startTime} 
                       onChange={handleTimeChange}
+                      disabled={isLoading}
                     >
                       {timeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -201,10 +274,15 @@ export default function ReservationForm({ price, onSubmit }) {
               <div className="selector-container">
                 <label className="selector-label">Ciudad</label>
                 <div className="selector-wrapper">
-                  <select className="selector-input" value={endCity} onChange={(e) => setEndCity(e.target.value)}>
-                    {cityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                  <select 
+                    className="selector-input" 
+                    value={endCity} 
+                    onChange={(e) => handleCityChange(e, false)}
+                    disabled={loadingCities || isLoading}
+                  >
+                    {cities.map((city) => (
+                      <option key={city.idCiudad} value={city.idCiudad.toString()}>
+                        {city.nombre}
                       </option>
                     ))}
                   </select>
@@ -239,6 +317,7 @@ export default function ReservationForm({ price, onSubmit }) {
                       className="selector-input date-input"
                       popperClassName="date-picker-popper"
                       popperPlacement="bottom-start"
+                      disabled={isLoading}
                     />
                     <div className="selector-icon">
                       <svg
@@ -265,7 +344,13 @@ export default function ReservationForm({ price, onSubmit }) {
                 <div className="selector-container">
                   <label className="selector-label">Hora Final</label>
                   <div className="selector-wrapper">
-                    <select className="selector-input" value={formData.endTime} onChange={handleTimeChange}>
+                    <select 
+                      name="endTime"
+                      className="selector-input" 
+                      value={formData.endTime} 
+                      onChange={handleTimeChange}
+                      disabled={isLoading}
+                    >
                       {timeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -303,7 +388,7 @@ export default function ReservationForm({ price, onSubmit }) {
                 type="button"
                 className="quantity-button decrease"
                 onClick={() => handleQuantityChange(-1)}
-                disabled={formData.quantity <= 1}
+                disabled={formData.quantity <= 1 || isLoading}
                 aria-label="Disminuir cantidad"
               >
                 -
@@ -313,6 +398,7 @@ export default function ReservationForm({ price, onSubmit }) {
                 type="button"
                 className="quantity-button increase"
                 onClick={() => handleQuantityChange(1)}
+                disabled={isLoading}
                 aria-label="Aumentar cantidad"
               >
                 +
@@ -327,8 +413,19 @@ export default function ReservationForm({ price, onSubmit }) {
           <span className="price-amount">${price.toFixed(2)}</span>
           <span className="price-period">/ día</span>
         </div>
-        <button type="submit" className="agregar-button">
-          Agregar
+        <button 
+          type="submit" 
+          className={`agregar-button ${isLoading ? 'loading' : ''}`}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <span className="spinner"></span>
+              <span>Procesando...</span>
+            </>
+          ) : (
+            'Agregar a Carrito'
+          )}
         </button>
       </div>
 

@@ -8,15 +8,24 @@ import SearchBar from "../Componentes/SearchBar"
 import Footer from "../Componentes/Footer"
 import "../Estilos/Reservar.css"
 import VehiculeService from "../Services/VehiculeService.ts"
+import { useCart } from '../Context/CartContext'
 
 function Reservar() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAuthenticated = localStorage.getItem("auth") === "true"
+  const { addToCart } = useCart()
 
   // Get filter parameters from navigation state if available
   const searchFilters = location.state?.filters || {}
   const fromHeroSection = location.state?.fromHeroSection || false
+
+  // Date and location variables
+  const [startDate, setStartDate] = useState(null)
+  const [endDate, setEndDate] = useState(null)
+  const [selectedLocation, setSelectedLocation] = useState("")
+  const [returnCity, setReturnCity] = useState("")
+  const [searchApplied, setSearchApplied] = useState(false)
 
   const [vehicles, setVehicles] = useState([])
   const [filteredVehicles, setFilteredVehicles] = useState([])
@@ -81,6 +90,11 @@ function Reservar() {
     const hasYearFilter = filters.year && (typeof filters.year === 'string' ? filters.year.trim() !== '' : true);
     const hasCapacityFilter = filters.capacity !== null && filters.capacity !== undefined;
 
+    // Set searchApplied to true when any filter is applied
+    if (hasModelFilter || hasBrandFilter || hasYearFilter || hasCapacityFilter) {
+      setSearchApplied(true);
+    }
+
     // Filtro por tipo (tipoVehiculo)
     if (hasBrandFilter) {
       filtered = filtered.filter(vehicle => 
@@ -138,6 +152,23 @@ function Reservar() {
     // Only run this once when component mounts and when we have search filters
     if ((searchFilters.brand || searchFilters.model || searchFilters.year || searchFilters.searchTerm) && initialLoad) {
       setInitialLoad(false); // Mark initial load as complete
+      
+      // Handle any date and location data from search filters
+      if (searchFilters.startDate) {
+        setStartDate(new Date(searchFilters.startDate));
+      }
+      
+      if (searchFilters.endDate) {
+        setEndDate(new Date(searchFilters.endDate));
+      }
+      
+      if (searchFilters.locationId) {
+        setSelectedLocation(searchFilters.locationId.toString());
+      }
+      
+      if (searchFilters.returnCityId) {
+        setReturnCity(searchFilters.returnCityId.toString());
+      }
       
       // Get a copy of initial vehicles for filtering
       const applyInitialFilters = async () => {
@@ -258,6 +289,15 @@ function Reservar() {
     // Limpiar el término de búsqueda
     setSearchTerm("");
     
+    // Reset search date and location fields
+    setStartDate(null);
+    setEndDate(null);
+    setSelectedLocation("");
+    setReturnCity("");
+    
+    // Reset search applied flag
+    setSearchApplied(false);
+    
     // Obtener todos los vehículos sin filtrar
     if (vehicles.length > 0) {
       setFilteredVehicles(vehicles);
@@ -279,6 +319,96 @@ function Reservar() {
     placa: vehicle.placa || "Sin placa",
     disponible: vehicle.disponible !== undefined ? vehicle.disponible : true
   }))
+
+  // Función para agregar al carrito
+  const handleAddToCart = async (vehicle) => {
+    let errorMessage = '';
+    
+    if (!startDate) {
+      errorMessage = 'Por favor seleccione una fecha de inicio';
+    } else if (!endDate) {
+      errorMessage = 'Por favor seleccione una fecha de finalización';
+    } else if (!selectedLocation) {
+      errorMessage = 'Por favor seleccione una ciudad de recogida';
+    } else if (!returnCity) {
+      errorMessage = 'Por favor seleccione una ciudad de devolución';
+    }
+    
+    if (errorMessage) {
+      alert(errorMessage);
+      return;
+    }
+
+    const cartItem = {
+      vehiculoId: vehicle.idVehiculo,
+      cantidad: 1,
+      fechaInicio: startDate.toISOString(),
+      fechaFin: endDate.toISOString(),
+      ciudadInicioId: parseInt(selectedLocation),
+      ciudadFinId: parseInt(returnCity)
+    };
+
+    const success = await addToCart(cartItem);
+    if (success) {
+      console.log('Vehículo agregado al carrito con éxito');
+    }
+  };
+
+  // Renderizar los vehículos
+  const renderVehicles = () => {
+    if (loading) {
+      return (
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Cargando vehículos...</p>
+        </div>
+      )
+    }
+
+    if (vehicles.length === 0 && searchApplied) {
+      return (
+        <div className="no-results">
+          <p>No se encontraron vehículos con los criterios seleccionados.</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="vehicle-list">
+        {vehicles.map((vehicle) => (
+          <div key={vehicle.idVehiculo} className="vehicle-card">
+            <div className="vehicle-image-container">
+              <img
+                src={vehicle.imagenUrl || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
+                alt={`${vehicle.marca} ${vehicle.modelo}`}
+                className="vehicle-image"
+              />
+            </div>
+            <div className="vehicle-details">
+              <h3>{vehicle.marca} {vehicle.modelo}</h3>
+              <div className="vehicle-specs">
+                <span><i className="fas fa-user"></i> {vehicle.capacidad}</span>
+                <span><i className="fas fa-cog"></i> {vehicle.transmision}</span>
+                <span><i className="fas fa-gas-pump"></i> {vehicle.combustible}</span>
+              </div>
+              <div className="vehicle-price-container">
+                <span className="vehicle-price">${vehicle.precio} / día</span>
+                <div className="vehicle-buttons">
+                  <button
+                    className="btn-reservar"
+                    onClick={() => handleAddToCart(vehicle)}
+                    disabled={!isAuthenticated}
+                  >
+                    {isAuthenticated ? 'Agregar al carrito' : 'Inicia sesión para reservar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="page-container">

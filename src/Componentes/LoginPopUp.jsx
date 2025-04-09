@@ -75,7 +75,20 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess, redirec
         
         console.log("Attempting login with:", loginData);
         
-        await authService.login(loginData);
+        const result = await authService.login(loginData);
+        
+        // Ensure user data is set correctly
+        console.log("Login successful, user data:", result.user);
+        
+        // Small delay to ensure localStorage is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify that user data is now available in localStorage
+        const userData = authService.getCurrentUser();
+        if (!userData || !userData.idUsuario) {
+          console.error("User data not properly stored after login");
+          throw new Error("Error en la inicialización de sesión. Por favor, intente nuevamente.");
+        }
         
         // Mostrar notificación de éxito
         notificationService.auth.loginSuccess();
@@ -106,7 +119,7 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess, redirec
             : 'Credenciales inválidas. Por favor, verifica tu email y contraseña.';
           setLoginError(errMsg);
         } else {
-          setLoginError("Error al iniciar sesión. Por favor, intente de nuevo.");
+          setLoginError(error.message || "Error al iniciar sesión. Por favor, intente de nuevo.");
         }
       } finally {
         setIsLoading(false);

@@ -4,7 +4,13 @@ import React, { useState, useEffect, useCallback } from 'react'
 import "../Estilos/SearchBar.css"
 import VehiculeService from '../Services/VehiculeService.ts'
 
-const SearchBar = ({ filters, onFilterChange, initialSearchTerm = "", searchAllFields = false }) => {
+const SearchBar = ({ 
+  filters, 
+  onFilterChange, 
+  initialSearchTerm = "", 
+  searchAllFields = false,
+  onClearFilters = null
+}) => {
   const [models, setModels] = useState([])
   const [allModels, setAllModels] = useState([]) // New state for all models
   const [years, setYears] = useState([])
@@ -181,6 +187,23 @@ const SearchBar = ({ filters, onFilterChange, initialSearchTerm = "", searchAllF
     }
   }
 
+  // Manejador para el botón de limpiar filtros
+  const handleClearFilters = () => {
+    // Limpiar el término de búsqueda local
+    setSearchTerm('');
+    
+    // Si se proporcionó una función de limpieza desde el componente padre, usarla
+    if (typeof onClearFilters === 'function') {
+      onClearFilters();
+    } else {
+      // Limpieza fallback si no se proporciona onClearFilters
+      onFilterChange('model', '');
+      onFilterChange('year', '');
+      onFilterChange('type', '');
+      onFilterChange('brand', '');
+    }
+  }
+
   return (
     <div className="search-bar">
       <form onSubmit={handleSearchSubmit} className="search-form">
@@ -239,6 +262,15 @@ const SearchBar = ({ filters, onFilterChange, initialSearchTerm = "", searchAllF
             ))}
           </select>
           {loading.years && <span className="loading-indicator">Cargando...</span>}
+        </div>
+        <div className="search-actions">
+          <button 
+            type="button" 
+            className="clear-filters-button"
+            onClick={handleClearFilters}
+          >
+            Limpiar filtros
+          </button>
         </div>
       </div>
     </div>

@@ -88,7 +88,7 @@ const VehicleGrid = ({ vehicles }) => {
                 <h3>{vehicle.brand}</h3>
                 <span className="vehicle-year">{vehicle.year}</span>
               </div>
-              <p className="vehicle-type">{vehicle.type}</p>
+              <p className="vehicle-type">{vehicle.model}</p>
               {!vehicle.disponible && (
                 <p className="vehicle-not-available">No Disponible</p>
               )}
@@ -112,11 +112,11 @@ const VehicleGrid = ({ vehicles }) => {
               </div>
               <div className="detail-item">
                 <Settings size={18} />
-                <span className="transmission-badge">{vehicle.transmision || "Manual"}</span>
+                <span className="transmission-badge">{vehicle.transmision}</span>
               </div>
               <div className="detail-item">
                 <Fuel size={18} />
-                <span>{vehicle.combustible || "90L"}</span>
+                <span>{vehicle.combustible}</span>
               </div>
             </div>
 

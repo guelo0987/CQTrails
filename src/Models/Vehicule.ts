@@ -8,6 +8,9 @@ export interface Vehicule {
   disponible: boolean;
   price: number;
   Image_url: string;
+  image_url?: string;
+  transmision?: string;
+  combustible?: string;
 }
 
 export class VehiculeModel implements Vehicule {
@@ -20,6 +23,9 @@ export class VehiculeModel implements Vehicule {
   disponible: boolean;
   price: number;
   Image_url: string;
+  image_url?: string;
+  transmision?: string;
+  combustible?: string;
 
   constructor(data: Vehicule) {
     this.idVehiculo = data.idVehiculo;
@@ -31,6 +37,9 @@ export class VehiculeModel implements Vehicule {
     this.disponible = data.disponible;
     this.price = data.price;
     this.Image_url = data.Image_url;
+    this.image_url = data.image_url;
+    this.transmision = data.transmision;
+    this.combustible = data.combustible;
   }
 
   static fromJSON(json: any): VehiculeModel {
@@ -43,7 +52,10 @@ export class VehiculeModel implements Vehicule {
       ano: json.ano,
       disponible: json.disponible,
       price: json.price,
-      Image_url: json.Image_url
+      Image_url: json.Image_url || json.image_url,
+      image_url: json.image_url || json.Image_url,
+      transmision: json.transmision,
+      combustible: json.combustible
     });
   }
 
@@ -57,7 +69,10 @@ export class VehiculeModel implements Vehicule {
       ano: this.ano,
       disponible: this.disponible,
       price: this.price,
-      Image_url: this.Image_url
+      Image_url: this.Image_url,
+      image_url: this.image_url,
+      transmision: this.transmision,
+      combustible: this.combustible
     };
   }
 }

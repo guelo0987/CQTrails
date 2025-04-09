@@ -243,6 +243,27 @@ function Reservar() {
     }
   }
 
+  // Función para limpiar todos los filtros
+  const clearAllFilters = () => {
+    // Restablecer los filtros a sus valores iniciales
+    setFilters({
+      type: "",
+      capacity: null,
+      priceRange: 500, // Valor por defecto
+      brand: "",
+      model: "",
+      year: ""
+    });
+    
+    // Limpiar el término de búsqueda
+    setSearchTerm("");
+    
+    // Obtener todos los vehículos sin filtrar
+    if (vehicles.length > 0) {
+      setFilteredVehicles(vehicles);
+    }
+  }
+
   // Mapeo de vehículos para VehicleGrid - Now with fallback for missing properties
   const mappedVehicles = filteredVehicles.map(vehicle => ({
     id: vehicle.idVehiculo,
@@ -250,10 +271,10 @@ function Reservar() {
     type: vehicle.tipoVehiculo || "Sin tipo",
     model: vehicle.modelo || "Sin modelo",
     year: vehicle.ano ? vehicle.ano.toString() : "N/A",
-    image: vehicle.Image_url || "https://placehold.co/300x200/CCCCCC/666666?text=No+Image",
+    image: vehicle.image_url || vehicle.Image_url || "https://placehold.co/300x200/CCCCCC/666666?text=No+Image",
     seats: vehicle.capacidad || 0,
     transmision: vehicle.transmision || "Manual",
-    combustible: vehicle.combustible || "90L",
+    combustible: vehicle.combustible || "Gasolina",
     price: vehicle.price || 0,
     placa: vehicle.placa || "Sin placa",
     disponible: vehicle.disponible !== undefined ? vehicle.disponible : true
@@ -285,6 +306,7 @@ function Reservar() {
                   onFilterChange={handleFilterChange}
                   initialSearchTerm={searchTerm}
                   searchAllFields={searchAllFields}
+                  onClearFilters={clearAllFilters}
                 />
                 <div className="results-info">
                   <p>Mostrando {filteredVehicles.length} vehículos</p>

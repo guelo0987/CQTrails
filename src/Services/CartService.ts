@@ -88,9 +88,17 @@ class CartService {
    * @param userId ID del usuario
    * @returns Promise con los items del carrito
    */
-  async getUserCartItems(userId: number): Promise<CartItemResponse[]> {
+  async getUserCartItems(userId: number) {
     try {
-      const response = await axios.get(`${this.baseUrl}${endpoints.carrito.getItems(userId)}`);
+      console.log('Starting Request', {
+        url: `${this.baseUrl}${endpoints.carrito.userItems(userId)}`,
+        method: 'get',
+        data: undefined,
+        headers: axios.defaults.headers
+      });
+      
+      const response = await axios.get(`${this.baseUrl}${endpoints.carrito.userItems(userId)}`);
+      console.log('Response:', response);
       return response.data;
     } catch (error) {
       console.error('Error al obtener el carrito del usuario:', error);
@@ -195,6 +203,42 @@ class CartService {
       return response.data;
     } catch (error) {
       console.error('Error al vaciar el carrito:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar la fecha de inicio de un ítem del carrito
+   * @param detalleId ID del detalle del carrito
+   * @param newDate Nueva fecha en formato ISO string
+   * @returns Promise con la respuesta del servidor
+   */
+  async updateStartDate(detalleId: number, newDate: string): Promise<CartItemResponse[]> {
+    try {
+      const response = await axios.put(`${this.baseUrl}${endpoints.carrito.updateStartDate(detalleId)}`, {
+        newFecha: newDate
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar fecha de inicio:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar la fecha de fin de un ítem del carrito
+   * @param detalleId ID del detalle del carrito
+   * @param newDate Nueva fecha en formato ISO string
+   * @returns Promise con la respuesta del servidor
+   */
+  async updateEndDate(detalleId: number, newDate: string): Promise<CartItemResponse[]> {
+    try {
+      const response = await axios.put(`${this.baseUrl}${endpoints.carrito.updateEndDate(detalleId)}`, {
+        newFecha: newDate
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar fecha de fin:', error);
       throw error;
     }
   }

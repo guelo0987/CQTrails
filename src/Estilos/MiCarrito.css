@@ -1,344 +1,437 @@
-.mi-reservacion-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: #f9f9f9;
+.micarrito-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f9f9f9;
+}
+
+.mi-reservacion-content {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 20px;
+  margin-top: 100px;
+  margin-bottom: 70px;
+}
+
+.title-bar {
+  background-color: #09A603;
+  margin-bottom: 40px;
+  text-align: center;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.title-bar h1 {
+  margin: 0;
+  font-size: A24px;
+  font-weight: 600;
+  color: white;
+}
+
+.cart-container {
+  display: flex;
+  gap: 24px;
+  background-color: transparent !important;
+}
+
+.cart-table {
+  flex: 1;
+  background-color: transparent !important;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.cart-items-container {
+  background-color: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background-color: white !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+  background-color: #f8f9fa;
+}
+
+.cart-item-image {
+  width: 100px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.cart-item-details {
+  flex: 1;
+  margin-left: 20px;
+}
+
+.cart-item-title {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.cart-item-type {
+  color: #666;
+  font-size: 14px;
+}
+
+.cart-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: #fff;
+}
+
+.volver-btn,
+.vaciar-btn {
+  padding: 8px 28px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.volver-btn {
+  background-color: #09A603;
+  color: white;
+  border: none;
+}
+
+.volver-btn:hover {
+  background-color: #078902;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(9, 166, 3, 0.2);
+}
+
+.vaciar-btn {
+  background-color: white;
+  color: #09A603;
+  border: 3px solid #09A603;
+}
+
+.vaciar-btn:hover {
+  background-color: #f2f2f2;
+  color: #333;
+}
+
+.empty-cart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.empty-cart p {
+  margin-bottom: 20px;
+  font-size: 18px;
+  color: #666;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #09A603;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #088802;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-container p {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #666;
+}
+
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  background-color: #fff9f9;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #ffcdd2;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.retry-button {
+  padding: 10px 20px;
+  background-color: #09A603;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.retry-button:hover {
+  background-color: #078902;
+}
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #09A603;
+  animation: spin 1s ease-in-out infinite;
+}
+
+.spinner.large {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
-  
-  .mi-reservacion-content {
-    flex: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    padding: 20px;
-    margin-top: 100px;
-    margin-bottom: 70px;
-  }
-  
-  .title-bar {
-    background-color: #09A603;
-    margin-bottom: 40px;
-    text-align: center;
-    padding: 15px;
-    border-radius: 8px;
-  }
-  
-  .title-bar h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
-    color: white;
-  }
-  
+}
+
+.cart-header {
+  display: grid;
+  grid-template-columns: 80px 200px 100px 140px 100px 100px 40px;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: #666;
+}
+
+.header-cell {
+  font-size: 14px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Alineaciones específicas para cada columna */
+.header-cell:nth-child(1) { /* Vehículo imagen */
+  text-align: left;
+}
+
+.header-cell:nth-child(2) { /* Vehículo detalles */
+  text-align: left;
+}
+
+.header-cell:nth-child(3) { /* Precio/día */
+  text-align: center;
+}
+
+.header-cell:nth-child(4) { /* Fechas */
+  text-align: center;
+}
+
+.header-cell:nth-child(5) { /* Cantidad */
+  text-align: center;
+}
+
+.header-cell:nth-child(6) { /* Subtotal */
+  text-align: center;
+}
+
+.remove-button {
+  background: #09A603;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.remove-button:hover {
+  background: #078902;
+  transform: scale(1.05);
+}
+
+.cart-summary {
+  background-color: white !important;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.summary-details {
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+  font-weight: 600;
+  color: #09A603;
+  font-size: 18px;
+}
+
+.summary-row.tax {
+  color: #666;
+  font-size: 14px;
+}
+
+.summary-reserve-button {
+  background-color: #09A603;
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.summary-reserve-button:hover {
+  background-color: #078902;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(9, 166, 3, 0.2);
+}
+
+.summary-reserve-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsividad */
+@media (max-width: 992px) {
   .cart-container {
-    display: flex;
-    gap: 24px;
-    background-color: transparent !important;
-  }
-  
-  .cart-table {
-    flex: 1;
-    background-color: transparent !important;
-    border-radius: 12px;
-    overflow: visible;
-  }
-  
-  .cart-items-container {
-    background-color: transparent;
-    display: flex;
     flex-direction: column;
-    gap: 12px;
   }
   
-  .cart-item {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background-color: white !important;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
+  .cart-summary {
+    margin-top: 20px;
   }
   
-  .cart-item:hover {
-    background-color: #f8f9fa;
+  .cart-header {
+    grid-template-columns: 60px 1fr 80px 120px 80px 80px 40px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mi-reservacion-content {
+    padding: 10px;
   }
   
-  .cart-item-image {
-    width: 100px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 8px;
-  }
-  
-  .cart-item-details {
-    flex: 1;
-    margin-left: 20px;
-  }
-  
-  .cart-item-title {
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 4px;
-  }
-  
-  .cart-item-type {
-    color: #666;
-    font-size: 14px;
+  .cart-header {
+    display: none; /* Ocultamos el header en móvil */
   }
   
   .cart-actions {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
-    background-color: #fff;
+    flex-direction: column;
+    gap: 10px;
   }
   
   .volver-btn,
   .vaciar-btn {
-    padding: 8px 28px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    width: 100%;
+    text-align: center;
   }
   
-  .volver-btn {
-    background-color: #09A603;
-    color: white;
-    border: none;
-  }
-  
-  .volver-btn:hover {
-    background-color: #078902;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(9, 166, 3, 0.2);
-  }
-  
-  .vaciar-btn {
-    background-color: white;
-    color: #09A603;
-    border: 3px solid #09A603;
-  }
-  
-  .vaciar-btn:hover {
-    background-color: #f2f2f2;
-    color: #333;
-  }
-  
-  .empty-cart {
-    display: flex;
+  .cart-item {
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    margin: 20px 0;
+    align-items: flex-start;
   }
   
-  .empty-cart p {
-    margin-bottom: 20px;
-    font-size: 18px;
-    color: #666;
+  .cart-item-details {
+    margin-left: 0;
+    margin-top: 10px;
+    width: 100%;
   }
-  
-  .btn-primary {
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: #09A603;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .btn-primary:hover {
-    background-color: #088802;
-  }
-  
-  .loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    padding: 40px;
-    text-align: center;
-  }
-  
-  .loading-container p {
-    margin-top: 20px;
-    font-size: 16px;
-    color: #666;
-  }
-  
-  .error-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
-    background-color: #fff9f9;
-    border-radius: 8px;
-    margin: 20px 0;
-    border: 1px solid #ffcdd2;
-  }
-  
-  .error-message {
-    color: #d32f2f;
-    margin-bottom: 20px;
-    font-size: 16px;
-  }
-  
-  .retry-button {
-    padding: 10px 20px;
-    background-color: #f44336;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .retry-button:hover {
-    background-color: #d32f2f;
-  }
-  
-  .spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top-color: #09A603;
-    animation: spin 1s ease-in-out infinite;
-  }
-  
-  .spinner.large {
-    width: 40px;
-    height: 40px;
-    border-width: 4px;
-  }
-  
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  
-  @media (max-width: 992px) {
-    .cart-container {
-      flex-direction: column;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .cart-header {
-      display: none;
-    }
-  
-    .cart-actions {
-      flex-direction: column;
-      gap: 10px;
-    }
-  
-    .volver-btn,
-    .vaciar-btn {
-      width: 100%;
-      text-align: center;
-    }
-  }
-  
-  .remove-button {
-    background: #09A603;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .remove-button:hover {
-    background: #078902;
-    transform: scale(1.05);
-  }
-  
-  .cart-summary {
-    background-color: white !important;
-    border-radius: 12px;
-    padding: 20px;
-    height: fit-content;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-  
-  .cart-header {
-    display: grid;
-    grid-template-columns: 80px 200px 100px 140px 100px 100px 40px;
-    align-items: center;
-    gap: 20px;
-    padding: 15px 20px;
-    background: white;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-weight: 500;
-    color: #666;
-  }
-  
-  .header-cell {
-    font-size: 14px;
-    text-transform: uppercase;
-    text-align: center;
-  }
-  
-  /* Alineaciones específicas para cada columna */
-  .header-cell:nth-child(1) { /* Vehículo imagen */
-    text-align: left;
-  }
-  
-  .header-cell:nth-child(2) { /* Vehículo detalles */
-    text-align: left;
-  }
-  
-  .header-cell:nth-child(3) { /* Precio/día */
-    text-align: center;
-  }
-  
-  .header-cell:nth-child(4) { /* Fechas */
-    text-align: center;
-  }
-  
-  .header-cell:nth-child(5) { /* Cantidad */
-    text-align: center;
-  }
-  
-  .header-cell:nth-child(6) { /* Subtotal */
-    text-align: center;
-  }
-  
-  @media (max-width: 1024px) {
-    .cart-header {
-      grid-template-columns: 60px 1fr 80px 120px 80px 80px 40px;
-      gap: 10px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .cart-header {
-      display: none; /* Ocultamos el header en móvil */
-    }
-  }
+}
+
+/* Estilos para el DatePicker */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+.date-picker-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.date-picker-label {
+  font-size: 14px;
+  color: #666;
+}
   
   
   

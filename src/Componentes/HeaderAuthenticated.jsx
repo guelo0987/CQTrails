@@ -37,49 +37,21 @@ function HeaderAuthenticated({ onLogout }) {
   // Function to fetch cart items
   const fetchCartItems = async () => {
     try {
-      // Get the current user's ID
-      const user = authService.getCurrentUser();
-      console.log("Current user:", user); // Debug log to see user object structure
-      
-      let userId = null;
-      
-      // Check different property names for ID
-      if (user && user.idUsuario) {
-        userId = user.idUsuario;
-      } else if (user && user.ID) {
-        userId = user.ID;
-      } else if (user && user.id) {
-        userId = user.id;
+      const userData = authService.getCurrentUser();
+      if (!userData || !userData.idUsuario) {
+        console.error('No se encontró información del usuario');
+        return;
       }
-      
-      if (userId) {
-        console.log(`Fetching cart items for user ID: ${userId}`);
-        const items = await CartService.getUserCartItems(userId);
-        console.log("Cart items fetched:", items);
-        
-        // Format cart items if needed
-        const formattedItems = Array.isArray(items) ? items.map(item => ({
-          ...item,
-          // Ensure these properties exist
-          price: item.price || 0,
-          cantidad: item.cantidad || 1,
-          subTotal: item.subTotal || 0,
-          vehiculo: item.vehiculo || { 
-            modelo: 'Vehículo no disponible',
-            tipoVehiculo: 'Tipo no disponible' 
-          }
-        })) : [];
-        
-        setCartItems(formattedItems);
-      } else {
-        console.error("User ID not available", user);
-        setCartItems([]);
-      }
+
+      console.log('Fetching cart items for user ID:', userData.idUsuario);
+      const items = await CartService.getUserCartItems(userData.idUsuario);
+      console.log('Cart items fetched:', items);
+      setCartItems(items || []);
     } catch (error) {
-      console.error("Error fetching cart items:", error);
+      console.error('Error fetching cart items:', error);
       setCartItems([]);
     }
-  }
+  };
 
   // Add effect to update user when auth changes
   useEffect(() => {
@@ -154,7 +126,7 @@ function HeaderAuthenticated({ onLogout }) {
                 <Link to="/reservar" className="header-auth-dropdown-item">
                   Reservar
                 </Link>
-                <Link to="/historial" className="header-auth-dropdown-item">
+                <Link to="/mis-reservaciones" className="header-auth-dropdown-item">
                   Mis Reservaciones
                 </Link>
               </div>
@@ -168,7 +140,7 @@ function HeaderAuthenticated({ onLogout }) {
             <div className="cartheader-container"
                  onMouseEnter={() => setShowCartPreview(true)}
                  onMouseLeave={() => setShowCartPreview(false)}>
-              <Link to="/mi-carrito" className="cart-link">
+              <Link to="/micarrito" className="cart-link">
                 <Car size={24} />
                 {cartItems.length > 0 && (
                   <span className="cart-count">{cartItems.length}</span>

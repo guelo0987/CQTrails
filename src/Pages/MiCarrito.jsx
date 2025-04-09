@@ -12,6 +12,7 @@ import { authService } from "../Services/AuthService.ts"
 import { useCart } from "../Context/CartContext"
 import "../Estilos/MiCarrito.css"
 import Swal from 'sweetalert2'
+import { reservationService } from '../Services/ReservationService.ts'
 
 export default function MiCarrito() {
   const navigate = useNavigate()
@@ -21,6 +22,8 @@ export default function MiCarrito() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { refreshCart } = useCart()
+  const [total, setTotal] = useState(0)
+  const [subtotal, setSubtotal] = useState(0)
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -37,6 +40,17 @@ export default function MiCarrito() {
         
         const items = await CartService.getUserCartItems(userData.idUsuario)
         setCartItems(items)
+        
+        // Calcular total y subtotal
+        if (items && items.length > 0) {
+          const calculatedSubtotal = items.reduce((acc, item) => acc + item.subTotal, 0)
+          const calculatedTotal = items.reduce((acc, item) => acc + item.total, 0)
+          setSubtotal(calculatedSubtotal)
+          setTotal(calculatedTotal)
+        } else {
+          setSubtotal(0)
+          setTotal(0)
+        }
       } catch (error) {
         console.error('Error al cargar el carrito:', error)
         setError(error.message || 'Ocurrió un error al cargar los items del carrito')
@@ -56,25 +70,18 @@ export default function MiCarrito() {
     fetchCartItems()
   }, [])
 
-  const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => {
-      return total + (item.subTotal || 0)
-    }, 0).toFixed(2)
-  }
-
-  const calculateTotal = () => {
-    const subtotal = parseFloat(calculateSubtotal())
-    const iva = subtotal * 0.13
-    return (subtotal + iva).toFixed(2)
-  }
-
   const handleRemoveItem = async (itemId) => {
     try {
       setLoading(true)
       // Llamar al API para eliminar el ítem
-      const updatedCart = await CartService.removeItemFromCart(itemId)
-      setCartItems(updatedCart)
+      await CartService.removeItemFromCart(itemId)
       refreshCart() // Refrescar el carrito en el contexto global
+      Swal.fire({
+        title: 'Éxito',
+        text: 'Ítem eliminado del carrito',
+        icon: 'success',
+        confirmButtonText: 'Entendido'
+      })
     } catch (error) {
       console.error('Error al eliminar ítem:', error)
       
@@ -172,23 +179,104 @@ export default function MiCarrito() {
   }
 
   const handleReserveClick = () => {
-    setIsConfirmationModalOpen(true)
+    // Mostrar el modal de confirmación
+    Swal.fire({
+      title: '¿Confirmar reservación?',
+      text: 'Estás a punto de crear una reservación con los vehículos en tu carrito',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, confirmar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#09A603',
+      cancelButtonColor: '#d33'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleConfirmReservation();
+      }
+    });
   }
 
-  const handleCancelReservation = () => {
-    setIsConfirmationModalOpen(false)
-    // Se mantiene en la página actual del carrito
-  }
+  const handleConfirmReservation = async () => {
+    try {
+      setLoading(true)
+      console.log('Creando reservación...')
+      
+      const userData = authService.getCurrentUser()
+      
+      if (!userData || !userData.idUsuario) {
+        throw new Error('No se encontró información del usuario')
+      }
 
-  const handleConfirmReservation = () => {
-    setIsConfirmationModalOpen(false)
-    setIsSuccessModalOpen(true)
+      // Crear la reservación
+      console.log('Enviando solicitud con userId:', userData.idUsuario)
+      const reservation = await reservationService.makeReservation(userData.idUsuario)
+      console.log('Reservación creada:', reservation)
+      
+      Swal.fire({
+        title: '¡Reservación creada!',
+        text: 'Tu reservación ha sido creada exitosamente',
+        icon: 'success',
+        confirmButtonText: 'Ver mis reservaciones'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/mis-reservaciones')
+        }
+      })
+    } catch (error) {
+      console.error('Error creating reservation:', error)
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo crear la reservación. Por favor, intenta nuevamente.',
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      })
+    } finally {
+      setLoading(false)
+      setIsConfirmationModalOpen(false)
+    }
   }
 
   const handleSuccessClose = async () => {
     setIsSuccessModalOpen(false)
     await handleEmptyCart()
     navigate('/historial')
+  }
+
+  const handleDateChange = async (itemId, field, newDate) => {
+    try {
+      setLoading(true)
+      // Format the date to include time (set to 00:00:00 if not provided)
+      const formattedDate = new Date(newDate)
+      formattedDate.setHours(0, 0, 0, 0)
+      const isoDate = formattedDate.toISOString()
+      
+      // Update the date
+      if (field === 'fechaInicio') {
+        await CartService.updateStartDate(itemId, isoDate)
+      } else if (field === 'fechaFin') {
+        await CartService.updateEndDate(itemId, isoDate)
+      }
+      
+      // Fetch the updated cart items
+      const userData = authService.getCurrentUser()
+      if (!userData || !userData.idUsuario) {
+        throw new Error('No se encontró información del usuario')
+      }
+      
+      const updatedCart = await CartService.getUserCartItems(userData.idUsuario)
+      setCartItems(updatedCart || [])
+      refreshCart()
+    } catch (error) {
+      console.error('Error updating date:', error)
+      Swal.fire({
+        title: 'Error',
+        text: 'No pudimos actualizar la fecha. Por favor, intenta nuevamente.',
+        icon: 'error',
+        confirmButtonText: 'Entendido'
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Formatear los datos de los ítems para el componente CartItem
@@ -248,6 +336,7 @@ export default function MiCarrito() {
                     item={item}
                     onRemove={handleRemoveItem}
                     onUpdateQuantity={handleUpdateQuantity}
+                    onDateChange={handleDateChange}
                     disabled={loading}
                   />
                 ))}
@@ -267,8 +356,8 @@ export default function MiCarrito() {
               </div>
             </div>
             <CartSummary 
-              subtotal={calculateSubtotal()} 
-              total={calculateTotal()} 
+              subtotal={subtotal.toFixed(2)} 
+              total={total.toFixed(2)} 
               onReserve={handleReserveClick}
               disabled={loading}
             />
@@ -278,7 +367,7 @@ export default function MiCarrito() {
 
       <ConfirmationModal 
         isOpen={isConfirmationModalOpen}
-        onClose={handleCancelReservation}
+        onClose={() => setIsConfirmationModalOpen(false)}
         onConfirm={handleConfirmReservation}
       />
 

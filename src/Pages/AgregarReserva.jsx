@@ -162,7 +162,7 @@ export default function AgregarReserva() {
         }).then((result) => {
           if (result.isConfirmed) {
             // Si el usuario elige ver el carrito
-            navigate('/mi-carrito')
+            navigate('/micarrito')
           } else {
             // Si el usuario elige seguir reservando
             navigate('/reservar')

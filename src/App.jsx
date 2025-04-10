@@ -7,6 +7,7 @@ import ReservarPage from './Pages/Reservar';
 import AddReservation from './Pages/AddReservation';
 import MiCarrito from './Pages/MiCarrito';
 import MisReservaciones from './Pages/MisReservaciones';
+import HistorialReservaciones from './Pages/HistorialReservaciones';
 import { CartProvider } from './Context/CartContext';
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/agregar-reserva/:vehiculoId" element={<AddReservation />} />
           <Route path="/micarrito" element={<MiCarrito />} />
           <Route path="/mis-reservaciones" element={<MisReservaciones />} />
+          <Route path="/historial" element={<HistorialReservaciones />} />
         </Routes>
       </Router>
     </CartProvider>

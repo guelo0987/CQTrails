@@ -12,12 +12,16 @@ class ReservationService {
     try {
       // Log the request details for debugging
       console.log('Making reservation request:', {
-        url: `${this.baseUrl}${endpoints.reservaciones.base}/${userId}`,
+        url: `${this.baseUrl}${endpoints.reservaciones.base}`,
         userId: userId
       });
       
-      // Try sending the userId as a URL parameter instead of in the body
-      const response = await axios.post(`${this.baseUrl}${endpoints.reservaciones.base}/${userId}`);
+      // Send the userId as a raw number in the request body, exactly as the backend expects
+      const response = await axios.post(`${this.baseUrl}${endpoints.reservaciones.base}`, userId, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       console.log('Reservation response:', response.data);
       return response.data;

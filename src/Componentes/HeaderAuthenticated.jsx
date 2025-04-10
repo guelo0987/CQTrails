@@ -129,6 +129,9 @@ function HeaderAuthenticated({ onLogout }) {
                 <Link to="/mis-reservaciones" className="header-auth-dropdown-item">
                   Mis Reservaciones
                 </Link>
+                <Link to="/historial" className="header-auth-dropdown-item">
+                  Historial
+                </Link>
               </div>
             </div>
             <Link to="/contacto" className="header-auth-contact">

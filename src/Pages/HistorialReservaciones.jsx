@@ -1,99 +1,163 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import PreFacturaPDF from '../Componentes/PreFacturaPDF'
 import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import "../Estilos/HistorialReservaciones.css"
+import { authService } from '../Services/AuthService.ts'
+import { reservationService } from '../Services/ReservationService.ts'
+import Swal from 'sweetalert2'
 
 export default function HistorialReservaciones() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterPeriod, setFilterPeriod] = useState("all")
+  const [reservations, setReservations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
 
-  const reservations = [
-    {
-      id: "RES-2025-001",
-      fecha: "20 de Julio de 2022",
-      reservadaA: "Marco Polo",
-      total: "14.00",
-      subtotal: "12.39",
-      estado: "Aprobada",
-      empresa: "Empresa A",
-      correo: "empresa@example.com",
-      telefono: "+506 1234-5678",
-      direccion: "San José, Costa Rica",
-      vehiculos: [
-        {
-          id: 1,
-          nombre: "Toyota Hiace",
-          tipo: "Furgoneta",
-          fechaInicio: "20 de Julio de 2022",
-          fechaFin: "22 de Julio 2022",
-          cantidad: 1,
-          subtotal: "12.39"
+  useEffect(() => {
+    const fetchReservations = async () => {
+      try {
+        setLoading(true);
+        const userData = authService.getCurrentUser();
+        
+        if (!userData || !userData.idUsuario) {
+          throw new Error('No se encontró información del usuario');
         }
-      ]
-    },
-    {
-      id: "RES-2025-002",
-      fecha: "5 de Marzo de 2025",
-      reservadaA: "Polo Marco",
-      total: "14.00",
-      estado: "Pendiente"
-    },
-    {
-      id: "RES-2024-003",
-      fecha: "30 de Mayo de 2023",
-      reservadaA: "Polo Marco",
-      total: "14.00",
-      estado: "Denegada"
-    },
-  ]
+
+        const data = await reservationService.getUserReservations(userData.idUsuario);
+        console.log('Reservaciones obtenidas:', data);
+        setReservations(data || []);
+      } catch (error) {
+        console.error('Error fetching reservations:', error);
+        setError(error.message);
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudieron cargar las reservaciones',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#09A603'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReservations();
+  }, []);
+
+  const handleViewPrefactura = async (reservationId) => {
+    try {
+      setLoading(true);
+      const userData = authService.getCurrentUser();
+      
+      if (!userData || !userData.idUsuario) {
+        throw new Error('No se encontró información del usuario');
+      }
+
+      const prefactura = await reservationService.getPrefactura(reservationId, userData.idUsuario);
+      
+      if (prefactura.archivoPdf) {
+        // Open PDF in new tab
+        window.open(prefactura.archivoPdf, '_blank');
+      } else {
+        Swal.fire({
+          title: 'Información',
+          text: 'La prefactura aún no está disponible',
+          icon: 'info',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#09A603'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching prefactura:', error);
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo cargar la prefactura. ' + (error.response?.data || error.message),
+        icon: 'error',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#09A603'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Función auxiliar para convertir fecha de texto a objeto Date
   const parseDate = (dateString) => {
-    const months = {
-      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-      'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    }
-    
-    const parts = dateString.toLowerCase().split(' de ')
-    const day = parseInt(parts[0])
-    const month = months[parts[1]]
-    const year = parseInt(parts[2])
-    
-    return new Date(year, month, day)
+    if (!dateString) return new Date();
+    return new Date(dateString);
   }
 
   // Función para filtrar por período
-  const filterByPeriod = (reservations) => {
+  const filterByPeriod = (reservationsList) => {
     const today = new Date()
     const days = parseInt(filterPeriod)
     
-    if (filterPeriod === 'all') return reservations
+    if (filterPeriod === 'all') return reservationsList;
 
-    return reservations.filter(reservation => {
-      const reservationDate = parseDate(reservation.fecha)
-      const diffTime = Math.abs(today - reservationDate)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return reservationsList.filter(reservation => {
+      const reservationDate = parseDate(reservation.fechaReservacion);
+      const diffTime = Math.abs(today - reservationDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
-      return diffDays <= days
-    })
+      return diffDays <= days;
+    });
   }
 
   // Aplicar ambos filtros: búsqueda y período
   const filteredReservations = filterByPeriod(reservations).filter(reservation => 
-    reservation.reservadaA.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    reservation.fecha.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+    !searchTerm || 
+    (reservation.usuario?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (new Date(reservation.fechaReservacion).toLocaleDateString().includes(searchTerm))
+  );
 
   const getStatusClass = (estado) => {
+    if (!estado) return 'status-pending';
+    
     switch(estado.toLowerCase()) {
-      case 'aprobada': return 'status-approved'
-      case 'denegada': return 'status-denied'
-      default: return 'status-pending'
+      case 'aceptada': return 'status-approved';
+      case 'aprobada': return 'status-approved';
+      case 'denegada': return 'status-denied';
+      default: return 'status-pending';
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="historial-container">
+        <HeaderAuthenticated />
+        <main className="historial-content">
+          <div className="loading-container">
+            <div className="spinner large"></div>
+            <p>Cargando historial de reservaciones...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="historial-container">
+        <HeaderAuthenticated />
+        <main className="historial-content">
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button 
+              className="retry-button" 
+              onClick={() => window.location.reload()}
+            >
+              Intentar de nuevo
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -157,72 +221,64 @@ export default function HistorialReservaciones() {
           </div>
         </div>
         
-        <div className="reservations-table-container">
-          <table className="reservationshistorial-table">
-            <thead>
-              <tr>
-                <th>Fecha de Reservación</th>
-                <th>Reservada a</th>
-                <th>Total</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReservations.map(reservation => (
-                <tr key={reservation.id}>
-                  <td>{reservation.fecha}</td>
-                  <td>{reservation.reservadaA}</td>
-                  <td>${reservation.total}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusClass(reservation.estado)}`}>
-                      {reservation.estado}
-                    </span>
-                  </td>
-                  <td className="actions-cell">
-                    <button 
-                      onClick={() => {
-                        console.log("Navegando a detalles de reservación:", reservation.id);
-                        const reservationId = String(reservation.id);
-                        window.location.href = `/historial/${reservationId}`;
-                      }}
-                      className="action-button view-button"
-                    >
-                      Ver detalles
-                    </button>
-                    {reservation.estado.toLowerCase() === 'aprobada' && (
-                      <PDFDownloadLink
-                        document={
-                          <PreFacturaPDF
-                            reservacionInfo={{
-                              id: `REV-${reservation.id}`,
-                              fecha: reservation.fecha,
-                              empresa: reservation.empresa,
-                              correo: reservation.correo,
-                              telefono: reservation.telefono,
-                              direccion: reservation.direccion,
-                              estado: reservation.estado
-                            }}
-                            vehiculos={reservation.vehiculos}
-                            subtotal={reservation.subtotal}
-                            iva={(parseFloat(reservation.subtotal) * 0.13).toFixed(2)}
-                            total={reservation.total}
-                          />
-                        }
-                        fileName={`pre-factura-${reservation.id}.pdf`}
-                        className="action-button download-button-outline"
-                      >
-                        {({ blob, url, loading, error }) =>
-                          loading ? 'Generando PDF...' : 'Descargar Pre-Factura'
-                        }
-                      </PDFDownloadLink>
-                    )}
-                  </td>
+        {reservations.length === 0 ? (
+          <div className="empty-reservations">
+            <p>No tienes reservaciones en tu historial</p>
+            <button 
+              className="btn-primary"
+              onClick={() => navigate('/reservar')}
+            >
+              Hacer una reservación
+            </button>
+          </div>
+        ) : (
+          <div className="reservations-table-container">
+            <table className="reservationshistorial-table">
+              <thead>
+                <tr>
+                  <th>Fecha de Reservación</th>
+                  <th>Reservada a</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredReservations.map(reservation => (
+                  <tr key={reservation.idReservacion}>
+                    <td>{new Date(reservation.fechaReservacion).toLocaleDateString()}</td>
+                    <td>{`${reservation.usuario?.nombre || ''} ${reservation.usuario?.apellido || ''}`}</td>
+                    <td>${reservation.total.toFixed(2)}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusClass(reservation.estado)}`}>
+                        {reservation.estado || 'Pendiente'}
+                      </span>
+                    </td>
+                    <td className="actions-cell">
+                      <button 
+                        onClick={() => {
+                          console.log("Navegando a detalles de reservación:", reservation.idReservacion);
+                          navigate(`/historial/${reservation.idReservacion}`);
+                        }}
+                        className="action-button view-button"
+                      >
+                        Ver detalles
+                      </button>
+                      {(reservation.estado === 'Aceptada' || reservation.estado === 'Aprobada') && (
+                        <button
+                          onClick={() => handleViewPrefactura(reservation.idReservacion)}
+                          className="action-button download-button-outline"
+                        >
+                          Ver Pre-Factura
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
       
       <Footer />

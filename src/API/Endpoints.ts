@@ -34,6 +34,7 @@ export const endpoints = {
     reservaciones: {
         base: 'api/Reservaciones',
         misReservaciones: (userId: number) => `api/Reservaciones/MisReservaciones/${userId}`,
+        detalle: (userId: number, reservationId: number) => `api/Reservaciones/Detalle/${userId}/${reservationId}`,
     },
     prefactura: {
         getPrefactura: (reservationId: number, userId: number) => `api/PreFactura/Prefactura/${reservationId}/${userId}`,

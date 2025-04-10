@@ -1,11 +1,12 @@
 import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import "../Estilos/DetallesReservacion.css"
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import TotalSummary from '../Componentes/TotalSummary'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import PreFacturaPDF from '../Componentes/PreFacturaPDF'
+import { reservationService } from '../Services/ReservationService.ts'
 
 // Importar imágenes de vehículos
 import furgoneta1 from "../Imagenes/Furgoneta.png"
@@ -14,122 +15,289 @@ import furgoneta3 from "../Imagenes/Minibus.png"
 
 // Mapeo de tipos de vehículos a imágenes
 const vehicleImages = {
-  "Furgoneta": furgoneta1,
-  "Camioneta": furgoneta2,
-  "Minibus": furgoneta3
+  "Sedan": furgoneta1,
+  "SUV": furgoneta2,
+  "Minivan": furgoneta3
 }
+
+// Función para formatear fecha y hora
+const formatDateTime = (dateString) => {
+  if (!dateString) return { date: "N/A", time: "N/A" };
+  
+  const date = new Date(dateString);
+  const formattedDate = date.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  const formattedTime = date.toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  return { date: formattedDate, time: formattedTime };
+};
 
 export default function DetallesReservacion() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [reservacionInfo, setReservacionInfo] = useState(null)
   const [vehiculosReservados, setVehiculosReservados] = useState([])
-
-  // Datos de ejemplo del historial (en producción esto vendría de una API)
-  const reservationsData = [
-    {
-      id: "RES-2025-001",
-      fecha: "20 de Julio de 2022",
-      reservadaA: "Marco Polo",
-      total: "14.00",
-      subtotal: "12.39",
-      estado: "Aprobada",
-      empresa: "Empresa A",
-      correo: "empresa@example.com",
-      telefono: "+506 1234-5678",
-      direccion: "San José, Costa Rica",
-      hora: "9:00 pm",
-      ciudad: "Santo Domingo",
-      vehiculos: [
-        {
-          id: 1,
-          nombre: "Toyota Hiace",
-          tipo: "Furgoneta",
-          fechaInicio: "20 de Julio de 2022",
-          fechaFin: "22 de Julio 2022",
-          cantidad: 1,
-          subtotal: "12.39"
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [formUserIdInput, setFormUserIdInput] = useState('')
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  
+  // Obtener el ID de usuario de diferentes fuentes
+  const getUserId = () => {
+    const checkStorage = (storage, name) => {
+      try {
+        const posiblesFuentes = [
+          'idUsuario', 'userId', 'userInfo', 'user', 'userData', 'currentUser',
+          'authUser', 'auth', 'usuario', 'datosUsuario', 'clienteData'
+        ];
+        
+        for (const key of posiblesFuentes) {
+          const valor = storage.getItem(key);
+          if (valor) {
+            // Si es un número directo
+            if (!isNaN(parseInt(valor)) && parseInt(valor) > 0) {
+              return parseInt(valor);
+            }
+            
+            // Intenta parsearlo como JSON
+            try {
+              const objeto = JSON.parse(valor);
+              
+              // Buscar campos comunes de ID de usuario en el objeto
+              const camposId = ['idUsuario', 'userId', 'id', 'usuarioId', 'user_id', 'ID'];
+              for (const campo of camposId) {
+                if (objeto[campo] && !isNaN(parseInt(objeto[campo])) && parseInt(objeto[campo]) > 0) {
+                  return parseInt(objeto[campo]);
+                }
+              }
+              
+              // Si el objeto mismo es un número
+              if (typeof objeto === 'number' && objeto > 0) {
+                return objeto;
+              }
+            } catch (e) {
+              // No es JSON, ignora y sigue
+            }
+          }
         }
-      ]
-    },
-    {
-      id: "RES-2025-002",
-      fecha: "5 de Marzo de 2025",
-      reservadaA: "Polo Marco",
-      total: "14.00",
-      estado: "Pendiente",
-      empresa: "Empresa B",
-      correo: "empresab@example.com",
-      telefono: "+506 8888-8888",
-      direccion: "Heredia, Costa Rica",
-      hora: "10:30 am",
-      ciudad: "Heredia",
-      vehiculos: []
-    },
-    {
-      id: "RES-2024-003",
-      fecha: "30 de Mayo de 2023",
-      reservadaA: "Polo Marco",
-      total: "14.00",
-      estado: "Denegada",
-      empresa: "Empresa C",
-      correo: "empresac@example.com",
-      telefono: "+506 9999-9999",
-      direccion: "Cartago, Costa Rica",
-      hora: "2:15 pm",
-      ciudad: "Cartago",
-      vehiculos: []
-    }
-  ]
+        
+        return null;
+      } catch (error) {
+        console.error(`Error al acceder a ${name}:`, error);
+        return null;
+      }
+    };
+    
+    // Revisar localStorage
+    const localStorageId = checkStorage(localStorage, 'localStorage');
+    if (localStorageId) return localStorageId;
+    
+    // Revisar sessionStorage
+    const sessionStorageId = checkStorage(sessionStorage, 'sessionStorage');
+    if (sessionStorageId) return sessionStorageId;
+    
+    return null;
+  };
+  
+  const userId = getUserId();
 
   useEffect(() => {
-    // Buscar la reservación correspondiente al ID
-    console.log("ID de reservación recibido:", id);
-    
-    // Asegurarse de que el ID sea un string
-    const reservationId = String(id);
-    
-    // Intentar encontrar la reservación por ID exacto
-    let reservacion = reservationsData.find(r => r.id === reservationId);
-    
-    // Si no se encuentra, intentar buscar por ID numérico (para compatibilidad con datos antiguos)
-    if (!reservacion && !isNaN(reservationId)) {
-      const numericId = parseInt(reservationId);
-      reservacion = reservationsData.find(r => {
-        // Extraer el número del ID si tiene formato "RES-YYYY-XXX"
-        const match = r.id.match(/RES-\d{4}-(\d+)/);
-        if (match) {
-          return parseInt(match[1]) === numericId;
+    const fetchReservationDetails = async () => {
+      // Validar ID de reservación
+      if (!id) {
+        setError('ID de reservación no especificado en la URL');
+        setLoading(false);
+        return;
+      }
+      
+      // Validar ID de usuario
+      if (!userId) {
+        setError('ID de usuario no disponible. Es posible que necesite iniciar sesión nuevamente o usar el formulario para ingresar el ID.');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        // Convertir el ID de la URL a número si es necesario
+        const reservationId = parseInt(id);
+        
+        if (isNaN(reservationId)) {
+          setError('ID de reservación inválido');
+          setLoading(false);
+          return;
         }
-        return false;
-      });
-    }
-    
-    console.log("Reservación encontrada:", reservacion);
-    
-    if (reservacion) {
-      setReservacionInfo(reservacion)
-      
-      // Asignar imágenes a los vehículos
-      const vehiculosConImagen = reservacion.vehiculos.map(vehiculo => ({
-        ...vehiculo,
-        imagen: vehicleImages[vehiculo.tipo] || furgoneta1 // Imagen predeterminada si no hay coincidencia
-      }))
-      
-      setVehiculosReservados(vehiculosConImagen)
-    } else {
-      console.error("No se encontró la reservación con ID:", reservationId);
-      // Redirigir a la página de historial si no se encuentra la reservación
-      window.location.href = "/historial";
-    }
-  }, [id])
+        
+        // Obtener el detalle de la reservación específica directamente usando el endpoint dedicado
+        console.log(`Obteniendo detalle de reservación: userId=${userId}, reservationId=${reservationId}`);
+        const reservacion = await reservationService.getReservationDetail(userId, reservationId);
+        
+        if (reservacion) {
+          console.log('Reservación encontrada:', reservacion);
+          setReservacionInfo(reservacion);
+          
+          // Asignar imágenes a los vehículos
+          const vehiculosConImagen = reservacion.vehiculos.map(vehiculo => ({
+            ...vehiculo,
+            imagen: vehicleImages[vehiculo.tipoVehiculo] || furgoneta1 // Imagen predeterminada si no hay coincidencia
+          }));
+          
+          setVehiculosReservados(vehiculosConImagen);
+        } else {
+          setError(`No se encontró la reservación con ID: ${reservationId}`);
+        }
+      } catch (err) {
+        console.error('Error al obtener detalles de reservación:', err);
+        if (err.response) {
+          // Error de respuesta del servidor
+          setError(`Error del servidor: ${err.response.status} - ${err.response.data || 'Sin detalles'}`);
+        } else if (err.request) {
+          // No se recibió respuesta
+          setError('No se pudo conectar con el servidor. Verifique su conexión a internet.');
+        } else {
+          // Error al configurar la solicitud
+          setError(`Error al procesar la solicitud: ${err.message}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!reservacionInfo) {
-    return <div>Cargando...</div>
+    fetchReservationDetails();
+  }, [id, userId, navigate]);
+
+  const handleVolverClick = () => {
+    navigate('/historial');
+  };
+
+  const handleReintentarClick = () => {
+    setLoading(true);
+    setError(null);
+    // Recargar la página para volver a intentar
+    window.location.reload();
+  };
+  
+  const handleMostrarFormulario = () => {
+    setMostrarFormulario(true);
+  };
+  
+  const handleSubmitFormulario = (e) => {
+    e.preventDefault();
+    const idIngresado = parseInt(formUserIdInput);
+    
+    if (!isNaN(idIngresado) && idIngresado > 0) {
+      // Guardar temporalmente en localStorage para esta sesión
+      localStorage.setItem('idUsuario', idIngresado.toString());
+      setLoading(true);
+      setError(null);
+      window.location.reload();
+    } else {
+      alert('Por favor ingrese un ID de usuario válido (número mayor a 0)');
+    }
+  };
+
+  // Mostrar estado de carga
+  if (loading) {
+    return (
+      <div className="detalles-reservacion-container">
+        <HeaderAuthenticated />
+        <main className="detalles-reservacion-content">
+          <div className="loading-container">
+            <p>Cargando detalles de la reservación...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
-  const subtotal = reservacionInfo.subtotal || "0.00"
+  // Mostrar mensaje de error si ocurrió alguno
+  if (error) {
+    return (
+      <div className="detalles-reservacion-container">
+        <HeaderAuthenticated />
+        <main className="detalles-reservacion-content">
+          <div className="error-container">
+            <h2>Error</h2>
+            <p>{error}</p>
+            <div className="error-actions">
+              <button onClick={handleReintentarClick} className="retry-button">
+                Reintentar
+              </button>
+              <button onClick={handleVolverClick} className="back-button">
+                Volver al Historial
+              </button>
+            </div>
+            
+            {!userId && (
+              <div className="error-help">
+                <p>Sugerencia: Parece que no hay información de sesión disponible.</p>
+                
+                {!mostrarFormulario ? (
+                  <div className="error-options">
+                    <button onClick={handleMostrarFormulario} className="option-button">
+                      Ingresar ID de usuario manualmente
+                    </button>
+                    <button onClick={() => navigate('/login')} className="login-button">
+                      Ir a Login
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitFormulario} className="user-id-form">
+                    <label htmlFor="userId">ID de Usuario:</label>
+                    <input 
+                      type="number" 
+                      id="userId" 
+                      value={formUserIdInput} 
+                      onChange={(e) => setFormUserIdInput(e.target.value)}
+                      min="1"
+                      required
+                    />
+                    <button type="submit">Confirmar</button>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Si no hay datos de reservación después de cargar
+  if (!reservacionInfo) {
+    return (
+      <div className="detalles-reservacion-container">
+        <HeaderAuthenticated />
+        <main className="detalles-reservacion-content">
+          <div className="error-container">
+            <h2>No se encontró la reservación</h2>
+            <p>La reservación con ID #{id} no existe o no pertenece a su cuenta.</p>
+            <button onClick={handleVolverClick} className="back-button">
+              Volver al Historial
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const subtotal = reservacionInfo.subTotal?.toFixed(2) || "0.00"
   const iva = (parseFloat(subtotal) * 0.13).toFixed(2)
-  const total = reservacionInfo.total || "0.00"
+  const total = reservacionInfo.total?.toFixed(2) || "0.00"
+  
+  // Formatear fechas
+  const fechaInicio = formatDateTime(reservacionInfo.fechaInicio);
+  const fechaFin = formatDateTime(reservacionInfo.fechaFin);
+  const fechaReservacion = formatDateTime(reservacionInfo.fechaReservacion);
 
   return (
     <div className="detalles-reservacion-container">
@@ -139,7 +307,7 @@ export default function DetallesReservacion() {
         <div className="reservacion-header">
           <div className="reservacion-info">
             <h1>Detalles de Reservación</h1>
-            <span className="reservacion-id">#{reservacionInfo.id}</span>
+            <span className="reservacion-id">#{reservacionInfo.idReservacion}</span>
           </div>
           <div className="header-actions">
             <span className={`estado-badge ${reservacionInfo.estado.toLowerCase()}`}>
@@ -150,12 +318,12 @@ export default function DetallesReservacion() {
                 document={
                   <PreFacturaPDF
                     reservacionInfo={{
-                      id: reservacionInfo.id,
-                      fecha: reservacionInfo.fecha,
-                      empresa: reservacionInfo.empresa,
-                      correo: reservacionInfo.correo,
-                      telefono: reservacionInfo.telefono,
-                      direccion: reservacionInfo.direccion,
+                      id: reservacionInfo.idReservacion,
+                      fecha: fechaReservacion.date,
+                      usuario: `${reservacionInfo.usuario.nombre} ${reservacionInfo.usuario.apellido || ''}`,
+                      correo: reservacionInfo.usuario.email,
+                      telefono: "N/A", // No disponible en el API
+                      direccion: "N/A", // No disponible en el API
                       estado: reservacionInfo.estado
                     }}
                     vehiculos={vehiculosReservados}
@@ -164,7 +332,7 @@ export default function DetallesReservacion() {
                     total={total}
                   />
                 }
-                fileName={`pre-factura-${reservacionInfo.id}.pdf`}
+                fileName={`pre-factura-${reservacionInfo.idReservacion}.pdf`}
                 className="download-button download-button-filled"
               >
                 {({ blob, url, loading, error }) =>
@@ -182,25 +350,23 @@ export default function DetallesReservacion() {
               <h2>Información de Contacto</h2>
               <div className="info-grid">
                 <div className="info-item">
-                  <span className="info-label">Empresa</span>
-                  <span className="info-value">{reservacionInfo.empresa}</span>
+                  <span className="info-label">Nombre</span>
+                  <span className="info-value">{reservacionInfo.usuario.nombre} {reservacionInfo.usuario.apellido || ''}</span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">Correo</span>
-                  <span className="info-value">{reservacionInfo.correo}</span>
+                  <span className="info-value">{reservacionInfo.usuario.email}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">Teléfono</span>
-                  <span className="info-value">{reservacionInfo.telefono}</span>
+                  <span className="info-label">ID Usuario</span>
+                  <span className="info-value">{reservacionInfo.usuario.idUsuario}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Dirección</span>
-                  <span className="info-value">{reservacionInfo.direccion}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Empleado</span>
-                  <span className="info-value">{reservacionInfo.reservadaA}</span>
-                </div>
+                {reservacionInfo.requerimientosAdicionales && (
+                  <div className="info-item">
+                    <span className="info-label">Requerimientos Adicionales</span>
+                    <span className="info-value">{reservacionInfo.requerimientosAdicionales}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -210,16 +376,24 @@ export default function DetallesReservacion() {
               <div className="info-grid">
                 <div className="info-item">
                   <span className="info-label">Fecha de Reservación</span>
-                  <span className="info-value">{reservacionInfo.fecha}</span>
+                  <span className="info-value">{fechaReservacion.date}</span>
                 </div>
                 <div className="info-item">
-                  <span className="info-label">Hora</span>
-                  <span className="info-value">{reservacionInfo.hora || "9:00 pm"}</span>
+                  <span className="info-label">Hora de Reservación</span>
+                  <span className="info-value">{fechaReservacion.time}</span>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Ciudad</span>
-                  <span className="info-value">{reservacionInfo.ciudad || "Santo Domingo"}</span>
-                </div>
+                {reservacionInfo.fechaConfirmacion && (
+                  <div className="info-item">
+                    <span className="info-label">Fecha de Confirmación</span>
+                    <span className="info-value">{formatDateTime(reservacionInfo.fechaConfirmacion).date}</span>
+                  </div>
+                )}
+                {reservacionInfo.rutaPersonalizada && (
+                  <div className="info-item">
+                    <span className="info-label">Ruta Personalizada</span>
+                    <span className="info-value">{reservacionInfo.rutaPersonalizada}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -231,34 +405,33 @@ export default function DetallesReservacion() {
               <h2>Vehículos Reservados</h2>
               {vehiculosReservados.length > 0 ? (
                 vehiculosReservados.map(vehiculo => (
-                  <div key={vehiculo.id} className="vehiculo-card">
+                  <div key={vehiculo.idVehiculo} className="vehiculo-card">
                     <div className="vehiculo-info">
                       <div className="vehiculo-imagen">
-                        <img src={vehiculo.imagen} alt={vehiculo.nombre} />
+                        <img src={vehiculo.imagen} alt={vehiculo.modelo} />
                       </div>
                       <div className="vehiculo-detalles">
-                        <h3>{vehiculo.nombre}</h3>
-                        <p className="vehiculo-tipo">{vehiculo.tipo}</p>
+                        <h3>{vehiculo.modelo}</h3>
+                        <p className="vehiculo-tipo">{vehiculo.tipoVehiculo}</p>
+                        <p className="vehiculo-placa">Placa: {vehiculo.placa}</p>
+                        <p className="vehiculo-capacidad">Capacidad: {vehiculo.capacidad} pasajeros</p>
+                        <p className="vehiculo-ano">Año: {vehiculo.ano}</p>
                         <div className="fechas-grid">
                           <div className="fecha-grupo">
                             <span className="fecha-label">Inicio</span>
-                            <span className="fecha-valor">{vehiculo.fechaInicio}</span>
-                            <span className="hora-valor">{vehiculo.horaInicio}</span>
+                            <span className="fecha-valor">{fechaInicio.date}</span>
+                            <span className="hora-valor">{fechaInicio.time}</span>
                           </div>
                           <div className="fecha-grupo">
                             <span className="fecha-label">Fin</span>
-                            <span className="fecha-valor">{vehiculo.fechaFin}</span>
-                            <span className="hora-valor">{vehiculo.horaFin}</span>
+                            <span className="fecha-valor">{fechaFin.date}</span>
+                            <span className="hora-valor">{fechaFin.time}</span>
                           </div>
                         </div>
                       </div>
-                      <div className="vehiculo-cantidad">
-                        <span className="cantidad-label">Cantidad</span>
-                        <span className="cantidad-valor">{vehiculo.cantidad}</span>
-                      </div>
-                      <div className="vehiculo-precio">
-                        <span className="precio-label">Subtotal</span>
-                        <span className="precio-valor">${vehiculo.subtotal}</span>
+                      <div className="vehiculo-estado">
+                        <span className="estado-label">Estado</span>
+                        <span className="estado-valor">{vehiculo.estadoAsignacion}</span>
                       </div>
                     </div>
                   </div>
@@ -282,6 +455,8 @@ export default function DetallesReservacion() {
     </div>
   )
 }
+
+
 
 
 

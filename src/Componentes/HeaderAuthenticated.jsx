@@ -43,7 +43,7 @@ function HeaderAuthenticated({ onLogout }) {
         return;
       }
 
-      console.log('Fetching cart items for user ID:', userData.idUsuario);
+     
       const items = await CartService.getUserCartItems(userData.idUsuario);
       console.log('Cart items fetched:', items);
       setCartItems(items || []);
@@ -125,9 +125,6 @@ function HeaderAuthenticated({ onLogout }) {
               <div className="header-auth-dropdown-menu">
                 <Link to="/reservar" className="header-auth-dropdown-item">
                   Reservar
-                </Link>
-                <Link to="/mis-reservaciones" className="header-auth-dropdown-item">
-                  Mis Reservaciones
                 </Link>
                 <Link to="/historial" className="header-auth-dropdown-item">
                   Historial

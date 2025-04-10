@@ -1,41 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL, endpoints } from '../API/Endpoints.ts';
 
-// Configure axios interceptors for debugging
-axios.interceptors.request.use(request => {
-  console.log('Starting Request', {
-    url: request.url,
-    method: request.method,
-    data: request.data,
-    headers: request.headers
-  });
-  return request;
-}, error => {
-  console.error('Request Error:', error);
-  return Promise.reject(error);
-});
-
-axios.interceptors.response.use(response => {
-  console.log('Response:', {
-    status: response.status,
-    statusText: response.statusText,
-    data: response.data,
-    headers: response.headers
-  });
-  return response;
-}, error => {
-  console.error('Response Error:', error);
-  if (error.response) {
-    console.error('Error Response Details:', {
-      status: error.response.status,
-      statusText: error.response.statusText,
-      data: error.response.data,
-      headers: error.response.headers
-    });
-  }
-  return Promise.reject(error);
-});
-
 // Interfaces para el servicio de carrito
 export interface DetalleCarritoDTO {
   usuarioId: number;
@@ -90,15 +55,10 @@ class CartService {
    */
   async getUserCartItems(userId: number) {
     try {
-      console.log('Starting Request', {
-        url: `${this.baseUrl}${endpoints.carrito.userItems(userId)}`,
-        method: 'get',
-        data: undefined,
-        headers: axios.defaults.headers
-      });
-      
       const response = await axios.get(`${this.baseUrl}${endpoints.carrito.userItems(userId)}`);
-      console.log('Response:', response);
+      if (response.data.notFound) {
+        return [];
+      }
       return response.data;
     } catch (error) {
       console.error('Error al obtener el carrito del usuario:', error);
@@ -113,9 +73,6 @@ class CartService {
    */
   async addItemToCart(cartItem: DetalleCarritoDTO): Promise<CartItemResponse[]> {
     try {
-      // Validate cartItem before sending
-      console.log('Cart item to be sent to API:', JSON.stringify(cartItem, null, 2));
-      
       // Make sure all fields have the proper type
       const validatedItem: DetalleCarritoDTO = {
         usuarioId: Number(cartItem.usuarioId),
@@ -126,9 +83,6 @@ class CartService {
         ciudadInicioId: Number(cartItem.ciudadInicioId),
         ciudadFinId: Number(cartItem.ciudadFinId)
       };
-      
-      console.log(`Sending request to: ${this.baseUrl}${endpoints.carrito.addItem}`);
-      console.log('Validated cart item:', validatedItem);
       
       const response = await axios.post(`${this.baseUrl}${endpoints.carrito.addItem}`, validatedItem, {
         headers: {
@@ -141,7 +95,6 @@ class CartService {
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
-        console.error('Response headers:', error.response.headers);
       }
       throw error;
     }
@@ -244,4 +197,4 @@ class CartService {
   }
 }
 
-export default new CartService(); 
+export default new CartService();

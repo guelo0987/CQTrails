@@ -41,6 +41,18 @@ class ReservationService {
     }
   }
 
+  async getReservationDetail(userId: number, reservationId: number) {
+    try {
+      console.log(`Fetching reservation detail: userId=${userId}, reservationId=${reservationId}`);
+      const response = await axios.get(`${this.baseUrl}${endpoints.reservaciones.detalle(userId, reservationId)}`);
+      console.log('Reservation detail response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching reservation detail:', error);
+      throw error;
+    }
+  }
+
   async getPrefactura(reservationId: number, userId: number) {
     try {
       const response = await axios.get(`${this.baseUrl}${endpoints.prefactura.getPrefactura(reservationId, userId)}`);

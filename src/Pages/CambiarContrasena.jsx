@@ -1,13 +1,18 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import "../Estilos/Perfil.css"
 import { User, Edit, Lock, LogOut, Trash2, Eye, EyeOff } from "lucide-react"
 import ConfirmationModal from "../Componentes/ConfirmationModal"
 import LoginPopUp from "../Componentes/LoginPopUp"
+import { authService } from "../Services/AuthService.ts"
+import axios from 'axios'
+import { API_BASE_URL, endpoints } from '../API/Endpoints.ts'
 
 export default function CambiarContrasena() {
+  const navigate = useNavigate()
+  
   // Estado para los datos del formulario
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -32,13 +37,23 @@ export default function CambiarContrasena() {
   
   // Estado para el modal de login
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  
+  // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState(null)
+  
+  // Estado para indicar carga
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Datos del usuario
-  const userData = {
-    nombre: "Marco",
-    apellido: "Polo",
-    email: "marco.polo@ejemplo.com"
-  }
+  // Obtener datos del usuario al cargar el componente
+  useEffect(() => {
+    const user = authService.getCurrentUser()
+    if (!user) {
+      // Si no hay usuario autenticado, redirigir al login
+      navigate("/")
+      return
+    }
+    setCurrentUser(user)
+  }, [navigate])
 
   // Función para manejar el cambio en los inputs
   const handleInputChange = (e) => {
@@ -67,10 +82,7 @@ export default function CambiarContrasena() {
 
   // Función para manejar el cierre de sesión
   const handleConfirmLogout = () => {
-    // Eliminar el estado de autenticación del localStorage
-    localStorage.removeItem("auth")
-    // Redirigir a la página principal
-    window.location.href = "/"
+    authService.handleLogout()
   }
   
   // Función para cancelar el cierre de sesión
@@ -134,8 +146,74 @@ export default function CambiarContrasena() {
     return true
   }
 
+  // Función para cambiar la contraseña usando AuthService
+  const changePassword = async () => {
+    try {
+      setIsLoading(true)
+      
+      if (!currentUser) {
+        throw new Error("No hay sesión activa")
+      }
+      
+      // Usar el endpoint correcto de userRecovery.resetPassword desde endpoints.ts
+      // y enviar los datos en el formato correcto que espera la API
+      const result = await axios.post(
+        `${API_BASE_URL}${endpoints.userRecovery.resetPassword}`,
+        {
+          email: currentUser.email,
+          oldPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${authService.getToken()}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Si llegamos aquí, la operación fue exitosa
+      setSuccessMessage("Tu contraseña ha sido actualizada exitosamente")
+      
+      // Reiniciar el formulario
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      })
+      
+      return true
+    } catch (error) {
+      console.error("Error al cambiar la contraseña:", error)
+      
+      // Manejar diferentes tipos de errores
+      if (error.response) {
+        if (error.response.status === 401) {
+          setErrorMessage("No autorizado. Tu sesión puede haber expirado. Por favor, inicia sesión nuevamente.")
+          // Opcional: redirigir al login después de un tiempo
+          setTimeout(() => {
+            authService.handleLogout();
+            navigate('/login');
+          }, 3000);
+        } else if (error.response.data && error.response.data.message) {
+          setErrorMessage(error.response.data.message)
+        } else {
+          setErrorMessage(`Error ${error.response.status}: ${error.response.statusText}`)
+        }
+      } else if (error.message) {
+        setErrorMessage(error.message)
+      } else {
+        setErrorMessage("Error al cambiar la contraseña. Inténtalo de nuevo.")
+      }
+      
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Función para manejar el envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     // Validar el formulario
@@ -143,21 +221,8 @@ export default function CambiarContrasena() {
       return
     }
 
-    // Simular validación de contraseña actual (en producción, esto se haría con una API)
-    if (formData.currentPassword !== "password123") {
-      setErrorMessage("La contraseña actual es incorrecta")
-      return
-    }
-
-    // Simular cambio exitoso
-    setSuccessMessage("Tu contraseña ha sido actualizada exitosamente")
-    
-    // Reiniciar el formulario
-    setFormData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    })
+    // Cambiar la contraseña
+    await changePassword()
   }
 
   return (
@@ -203,9 +268,9 @@ export default function CambiarContrasena() {
           <div className="perfil-hero">
             <div className="hero-content">
               <h1>
-                {userData.nombre} {userData.apellido}
+                {currentUser?.nombre || ""} {currentUser?.apellido || ""}
               </h1>
-              <p>{userData.email}</p>
+              <p>{currentUser?.email || ""}</p>
             </div>
           </div>
 
@@ -238,6 +303,7 @@ export default function CambiarContrasena() {
                         value={formData.currentPassword}
                         onChange={handleInputChange}
                         placeholder="Ingresa tu contraseña actual"
+                        disabled={isLoading}
                       />
                       <button 
                         type="button" 
@@ -260,6 +326,7 @@ export default function CambiarContrasena() {
                         value={formData.newPassword}
                         onChange={handleInputChange}
                         placeholder="Ingresa tu nueva contraseña"
+                        disabled={isLoading}
                       />
                       <button 
                         type="button" 
@@ -283,6 +350,7 @@ export default function CambiarContrasena() {
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         placeholder="Confirma tu nueva contraseña"
+                        disabled={isLoading}
                       />
                       <button 
                         type="button" 
@@ -296,19 +364,28 @@ export default function CambiarContrasena() {
                   </div>
 
                   <div className="form-actions">
-                    <button type="button" className="cancel-button" onClick={() => {
-                      setFormData({
-                        currentPassword: "",
-                        newPassword: "",
-                        confirmPassword: ""
-                      })
-                      setErrorMessage("")
-                      setSuccessMessage("")
-                    }}>
+                    <button 
+                      type="button" 
+                      className="cancel-button" 
+                      onClick={() => {
+                        setFormData({
+                          currentPassword: "",
+                          newPassword: "",
+                          confirmPassword: ""
+                        })
+                        setErrorMessage("")
+                        setSuccessMessage("")
+                      }}
+                      disabled={isLoading}
+                    >
                       Cancelar
                     </button>
-                    <button type="submit" className="save-button">
-                      Actualizar Contraseña
+                    <button 
+                      type="submit" 
+                      className="save-button"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Actualizando..." : "Actualizar Contraseña"}
                     </button>
                   </div>
                 </form>
@@ -351,4 +428,4 @@ export default function CambiarContrasena() {
       <Footer />
     </div>
   )
-} 
+}

@@ -130,24 +130,23 @@ class AuthService {
     /**
      * Reset password with token
      * @param token Reset token
+     * @param email User email
+     * @param oldPassword Old password
      * @param newPassword New password
      * @returns Promise with password reset response
      */
-    async resetPassword(token: string, newPassword: string) {
+    async resetPassword(token: string, email:string,oldPassword:string,newPassword: string) {
         try {
-            // Return a mock successful response
-            return {
-                success: true,
-                message: 'Contraseña actualizada exitosamente'
-            };
             
-            /* Uncomment this when the API is ready
-            const response = await axios.post(`${this.baseURL}api/Auth/resetPassword`, {
+             
+            const response = await axios.post(`${this.baseURL}${endpoints.userRecovery.resetPassword}`, {
                 token,
+                email,
+                oldPassword,
                 newPassword
             });
             return response.data;
-            */
+            
         } catch (error) {
             console.error('Error en restablecimiento de contraseña:', error);
             throw error;

@@ -3,8 +3,14 @@ export const API_BASE_URL = (import.meta as any).env?.API_URL || 'http://localho
 export const endpoints = {
     auth: {
         login: 'api/Auth/login',
-        register: 'api/Auth/register',
+        register: 'api/Auth/register'
     },
+
+    userRecovery: {
+        sendRecoveryEmail: 'api/UserRecovery/send-recovery-email',
+        resetPassword: 'api/UserRecovery/change-password'
+    },
+
     vehicule: {
         listar: 'api/Vehicule',
         porCapacidad: (id: number) => `api/Vehicule/capacidad/${id}`,

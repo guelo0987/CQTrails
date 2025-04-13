@@ -3,12 +3,19 @@ export const API_BASE_URL = (import.meta as any).env?.API_URL || 'http://localho
 export const endpoints = {
     auth: {
         login: 'api/Auth/login',
-        register: 'api/Auth/register'
+        register: 'api/Auth/register',
+        updateUserAndEmpresa: 'api/Auth/update-user-and-empresa' // New endpoint
     },
 
     userRecovery: {
         sendRecoveryEmail: 'api/UserRecovery/send-recovery-email',
         resetPassword: 'api/UserRecovery/change-password'
+    },
+
+    Empresa: {
+        listar: 'api/Empresa',
+        porId: (id: number) => `api/Empresa/${id}`,
+        porEmail: (email: string) => `api/Empresa/email/${email}`,
     },
 
     vehicule: {
@@ -45,4 +52,4 @@ export const endpoints = {
     prefactura: {
         getPrefactura: (reservationId: number, userId: number) => `api/PreFactura/Prefactura/${reservationId}/${userId}`,
     }
-} as const; 
+} as const;

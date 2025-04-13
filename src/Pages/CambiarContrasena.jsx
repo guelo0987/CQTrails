@@ -255,10 +255,6 @@ export default function CambiarContrasena() {
               <LogOut size={18} />
               <span>Cerrar Sesión</span>
             </Link>
-            <Link to="#" onClick={handleDeleteClick} className="sidebar-item delete">
-              <Trash2 size={18} />
-              <span>Eliminar Cuenta</span>
-            </Link>
           </div>
         </aside>
 

@@ -735,6 +735,137 @@
     color: #0d904f;
     border-left: 3px solid #0d904f;
   }
+/* Estilos mejorados para las reservaciones en el perfil */
+.reservacion-item {
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reservacion-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reservacion-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vehicle-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.vehicle-img-container {
+  width: 60px;
+  height: 60px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vehicle-thumbnail {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.vehicleperfil-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.vehicle-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.vehicle-type {
+  color: #666;
+  font-size: 14px;
+}
+
+.reservacion-fecha {
+  flex: 1;
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+}
+
+.reservacion-detalles {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  min-width: 100px;
+}
+
+.status-badge.pendiente {
+  background-color: #fff8e1;
+  color: #f57c00;
+  border: 1px solid #ffe0b2;
+}
+
+.status-badge.confirmada {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.status-badge.cancelada {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.status-badge.completada {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.reservacion-total {
+  font-weight: 600;
+  color: #09A603;
+  font-size: 16px;
+  min-width: 80px;
+  text-align: right;
+}
+
+.reservacion-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f0f9f0;
+  transition: all 0.2s ease;
+}
+
+.reservacion-item:hover .reservacion-arrow {
+  background-color: #e6f4ea;
+  transform: translateX(2px);
+}
   
   
   

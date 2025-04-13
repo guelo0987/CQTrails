@@ -1,13 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import HeaderAuthenticated from "../Componentes/HeaderAuthenticated"
 import Footer from "../Componentes/Footer"
 import "../Estilos/Perfil.css"
 import { User, Edit, Lock, LogOut, Trash2, ChevronRight, ArrowRight } from "lucide-react"
 import ConfirmationModal from "../Componentes/ConfirmationModal"
 import LoginPopUp from "../Componentes/LoginPopUp"
+import { authService } from "../Services/AuthService.ts"
+import { reservationService } from "../Services/ReservationService.ts"
+import { empresaService } from "../Services/EmpresaService.ts"
+import { notificationService } from "../Utils/notificationService.ts"
 
 // Importar imágenes de vehículos
 import furgoneta1 from "../Imagenes/Furgoneta.png"
@@ -22,7 +26,21 @@ const vehicleImages = {
   "SUV": furgoneta2
 }
 
+// Función para formatear fecha
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
 export default function Perfil() {
+  const navigate = useNavigate();
+  
   // Estado para manejar el modo de edición
   const [editMode, setEditMode] = useState(false)
   
@@ -37,52 +55,106 @@ export default function Perfil() {
 
   // Estado para los datos del usuario
   const [userData, setUserData] = useState({
-    nombre: "Marco",
-    apellido: "Polo",
-    email: "marco.polo@ejemplo.com",
-    telefono: "809-555-1234",
-    direccion: "Santo Domingo, República Dominicana",
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    
   })
 
+  // Estado para los datos de la empresa
+  const [empresaData, setEmpresaData] = useState(null)
+  
   // Estado para almacenar los datos temporales durante la edición
   const [tempData, setTempData] = useState({ ...userData })
+  
+  // Estado para las reservaciones recientes
+  const [recentReservations, setRecentReservations] = useState([])
+  const [loadingReservations, setLoadingReservations] = useState(true)
+  const [reservationError, setReservationError] = useState(null)
+  
+  // Estado para manejar errores y carga durante la actualización
+  const [updateLoading, setUpdateLoading] = useState(false)
+  const [updateError, setUpdateError] = useState(null)
 
-  // Datos de ejemplo para reservaciones recientes
-  const reservacionesRecientes = [
-    {
-      id: "RES-2025-001",
-      fecha: "20 de Julio de 2022",
-      vehiculo: "Toyota Hiace",
-      tipo: "Furgoneta",
-      estado: "Aprobada",
-      total: "$14.00",
-    },
-    {
-      id: "RES-2025-002",
-      fecha: "5 de Marzo de 2025",
-      vehiculo: "Nissan GT-R",
-      tipo: "Minibus",
-      estado: "Pendiente",
-      total: "$14.00",
-    },
-    {
-      id: "RES-2024-003",
-      fecha: "30 de Mayo de 2023",
-      vehiculo: "Toyota RAV4",
-      tipo: "SUV",
-      estado: "Denegada",
-      total: "$14.00",
-    },
-  ]
+  // Obtener los datos del usuario y empresa al cargar el componente
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Obtener datos del usuario del localStorage
+        const user = authService.getCurrentUser();
+        
+        if (user) {
+          const userData = {
+            nombre: user.nombre || "",
+            apellido: user.apellido || "",
+            email: user.email || "",
+            telefono: user.telefono || ""
+          };
+          
+          setUserData(userData);
+          setTempData({...userData});
+          
+          // Obtener datos de la empresa asociada al usuario
+          if (user.email) {
+            try {
+              const empresa = await empresaService.getEmpresaByEmail(user.email);
+              setEmpresaData(empresa);
+              
+              // Añadir los datos de la empresa al estado temporal para el formulario
+              setTempData(prev => ({
+                ...prev,
+                nombreEmpresa: empresa.nombre,
+                telefonoEmpresa: empresa.contactoTelefono
+              }));
+            } catch (error) {
+              console.error("Error al obtener datos de la empresa:", error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener datos del usuario:", error);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
-  // Función para obtener la clase del estado
-  const getStatusClass = (estado) => {
-    switch(estado.toLowerCase()) {
-      case 'aprobada': return 'status-approved'
-      case 'denegada': return 'status-denied'
-      default: return 'status-pending'
-    }
-  }
+  // Obtener las reservaciones recientes al cargar el componente
+  useEffect(() => {
+    const fetchRecentReservations = async () => {
+      try {
+        setLoadingReservations(true);
+        const user = authService.getCurrentUser();
+        
+        if (!user || !user.idUsuario) {
+          throw new Error('No se encontró información del usuario');
+        }
+
+        const reservations = await reservationService.getUserReservations(user.idUsuario);
+        
+        
+        // Tomar solo las 3 más recientes
+        const recentOnes = Array.isArray(reservations) ? 
+          reservations.slice(0, 3) : 
+          [];
+          
+        setRecentReservations(recentOnes);
+      } catch (error) {
+        console.error('Error al obtener reservaciones recientes:', error);
+        setReservationError(error.message);
+      } finally {
+        setLoadingReservations(false);
+      }
+    };
+
+    fetchRecentReservations();
+  }, []);
+
+  // Función para navegar a la página de detalles de reservación
+  const handleViewReservationDetail = (reservationId) => {
+    navigate(`/historial/${reservationId}`);
+  };
 
   // Función para manejar el cambio en los inputs
   const handleInputChange = (e) => {
@@ -93,16 +165,78 @@ export default function Perfil() {
     })
   }
 
+
+
   // Función para guardar los cambios
-  const handleSaveChanges = () => {
-    setUserData({ ...tempData })
-    setEditMode(false)
+  const handleSaveChanges = async () => {
+    try {
+      setUpdateLoading(true);
+      setUpdateError(null);
+      
+      // Preparar datos para la actualización
+      const updateData = {
+        currentEmail: userData.email,
+        newNombre: tempData.nombre,
+        newApellido: tempData.apellido,
+        newEmail: tempData.email,
+        // Añadir datos de la empresa si existen
+        newNombreEmpresa: tempData.nombreEmpresa || (empresaData ? empresaData.nombre : null),
+        newTelefonoEmpresa: tempData.telefonoEmpresa || (empresaData ? empresaData.contactoTelefono : null)
+      };
+      
+      // Llamar al servicio para actualizar usuario y empresa
+      await authService.updateUserAndEmpresa(updateData);
+      
+      // Actualizar el estado local con los nuevos datos
+      setUserData({
+        ...tempData,
+        // Eliminar los campos específicos de la empresa del userData
+        nombreEmpresa: undefined,
+        telefonoEmpresa: undefined
+      });
+      
+      // Actualizar los datos de la empresa en el estado
+      if (empresaData) {
+        setEmpresaData({
+          ...empresaData,
+          nombre: tempData.nombreEmpresa || empresaData.nombre,
+          contactoTelefono: tempData.telefonoEmpresa || empresaData.contactoTelefono
+        });
+      }
+      
+      // Si el email cambió, actualizar los datos de la empresa
+      if (userData.email !== tempData.email) {
+        try {
+          const empresa = await empresaService.getEmpresaByEmail(tempData.email);
+          setEmpresaData(empresa);
+        } catch (error) {
+          console.error("Error al obtener datos actualizados de la empresa:", error);
+        }
+      }
+      
+      setEditMode(false);
+      
+      // Reemplazar el alert con una notificación más atractiva
+      notificationService.showSuccess("Información actualizada correctamente");
+    } catch (error) {
+      console.error("Error al guardar cambios:", error);
+      setUpdateError("Error al actualizar la información. Por favor, intente de nuevo.");
+      notificationService.showError("Error al actualizar la información. Por favor, intente de nuevo.");
+    } finally {
+      setUpdateLoading(false);
+    }
   }
 
   // Función para cancelar la edición
   const handleCancelEdit = () => {
-    setTempData({ ...userData })
-    setEditMode(false)
+    // Restablecer todos los campos, incluidos los de la empresa
+    setTempData({
+      ...userData,
+      // Si hay datos de empresa, añadirlos al estado temporal
+      nombreEmpresa: empresaData ? empresaData.nombre : '',
+      telefonoEmpresa: empresaData ? empresaData.contactoTelefono : ''
+    });
+    setEditMode(false);
   }
 
   // Función para abrir el modal de eliminación de cuenta
@@ -163,6 +297,72 @@ export default function Perfil() {
     setIsDeleteModalOpen(false)
   }
 
+  // Renderizar la sección de reservaciones recientes
+  const renderRecentReservations = () => {
+    if (loadingReservations) {
+      return <div className="loading-message">Cargando reservaciones recientes...</div>;
+    }
+
+    if (reservationError) {
+      return <div className="error-message">Error al cargar reservaciones: {reservationError}</div>;
+    }
+
+    if (recentReservations.length === 0) {
+      return (
+        <div className="empty-reservations">
+          <p>No tienes reservaciones recientes</p>
+          <Link to="/reservar" className="cta-button">Reservar ahora</Link>
+        </div>
+      );
+    }
+
+    return (
+      <div className="reservations-table">
+        {recentReservations.map((reservacion) => (
+          <div 
+            key={reservacion.id || reservacion.idReservacion} 
+            className="reservacion-item"
+            onClick={() => handleViewReservationDetail(reservacion.id || reservacion.idReservacion)}
+          >
+            <div className="reservacion-info">
+              <div className="vehicle-cell">
+                <div className="vehicle-img-container">
+                  <img 
+                    src={vehicleImages[reservacion.tipoVehiculo] || furgoneta1} 
+                    alt={reservacion.tipoVehiculo || "Vehículo"} 
+                    className="vehicle-thumbnail" 
+                  />
+                </div>
+                <div className="vehicleperfil-info">
+                  <div className="vehicle-name">{reservacion.vehiculo || reservacion.nombreVehiculo || "Vehículo"}</div>
+                  <div className="vehicle-type">{reservacion.tipoVehiculo || "Tipo de vehículo"}</div>
+                </div>
+              </div>
+              
+              <div className="reservacion-fecha">
+                {formatDate(reservacion.fecha || reservacion.fechaReservacion)}
+              </div>
+              
+              <div className="reservacion-detalles">
+                <div className={`status-badge ${reservacion.estado?.toLowerCase() || 'pendiente'}`}>
+                  {reservacion.estado || "Pendiente"}
+                </div>
+                
+                <div className="reservacion-total">
+                  ${reservacion.total || reservacion.montoTotal || "0.00"}
+                </div>
+                
+                <div className="reservacion-arrow">
+                  <ChevronRight size={20} color="#09A603" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="perfil-container">
       <HeaderAuthenticated />
@@ -189,13 +389,9 @@ export default function Perfil() {
           </div>
 
           <div className="sidebar-section">
-            <Link to="#" onClick={handleLogoutClick} className="sidebar-item">
+            <Link to="#" onClick={(e) => { e.preventDefault(); setIsLogoutModalOpen(true); }} className="sidebar-item">
               <LogOut size={18} />
               <span>Cerrar Sesión</span>
-            </Link>
-            <Link to="#" onClick={handleDeleteClick} className="sidebar-item delete">
-              <Trash2 size={18} />
-              <span>Eliminar Cuenta</span>
             </Link>
           </div>
         </aside>
@@ -205,14 +401,15 @@ export default function Perfil() {
           {/* Banner del perfil */}
           <div className="perfil-hero">
             <div className="hero-content">
-              <h1>
-                {userData.nombre} {userData.apellido}
-              </h1>
+              <h1>{userData.nombre} {userData.apellido}</h1>
               <p>{userData.email}</p>
+              {empresaData && (
+                <p className="empresa-info">Empresa: {empresaData.nombre}</p>
+              )}
             </div>
           </div>
 
-          {/* Secciones de información */}
+          {/* Secciones del perfil */}
           <div className="perfil-sections">
             {/* Información personal */}
             <section className="perfil-section">
@@ -249,35 +446,43 @@ export default function Perfil() {
                       />
                     </div>
                     <div className="form-group">
-                      <label htmlFor="telefono">Teléfono</label>
-                      <input
-                        type="text"
-                        id="telefono"
-                        name="telefono"
-                        value={tempData.telefono}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="form-group">
                       <label htmlFor="email">Correo Electrónico</label>
                       <input type="email" id="email" name="email" value={tempData.email} onChange={handleInputChange} />
                     </div>
-                    <div className="form-group">
-                      <label htmlFor="direccion">Dirección</label>
-                      <input
-                        type="text"
-                        id="direccion"
-                        name="direccion"
-                        value={tempData.direccion}
-                        onChange={handleInputChange}
-                      />
-                    </div>
+                    
+                    {/* Campos para editar información de la empresa */}
+                    {empresaData && (
+                      <>
+                        <div className="form-group">
+                          <label htmlFor="nombreEmpresa">Nombre de Empresa</label>
+                          <input
+                            type="text"
+                            id="nombreEmpresa"
+                            name="nombreEmpresa"
+                            value={tempData.nombreEmpresa || empresaData.nombre}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label htmlFor="telefonoEmpresa">Teléfono de Empresa</label>
+                          <input
+                            type="text"
+                            id="telefonoEmpresa"
+                            name="telefonoEmpresa"
+                            value={tempData.telefonoEmpresa || empresaData.contactoTelefono}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    {updateError && <div className="error-message">{updateError}</div>}
                     <div className="form-actions">
-                      <button className="cancel-button" onClick={handleCancelEdit}>
+                      <button className="cancel-button" onClick={handleCancelEdit} disabled={updateLoading}>
                         Cancelar
                       </button>
-                      <button className="save-button" onClick={handleSaveChanges}>
-                        Guardar Cambios
+                      <button className="save-button" onClick={handleSaveChanges} disabled={updateLoading}>
+                        {updateLoading ? "Guardando..." : "Guardar Cambios"}
                       </button>
                     </div>
                   </div>
@@ -292,58 +497,37 @@ export default function Perfil() {
                       <div className="info-value">{userData.apellido}</div>
                     </div>
                     <div className="info-row">
-                      <div className="info-label">Teléfono:</div>
-                      <div className="info-value">{userData.telefono}</div>
-                    </div>
-                    <div className="info-row">
                       <div className="info-label">Correo Electrónico:</div>
                       <div className="info-value">{userData.email}</div>
                     </div>
-                    <div className="info-row">
-                      <div className="info-label">Dirección:</div>
-                      <div className="info-value">{userData.direccion}</div>
-                    </div>
+                    {empresaData && (
+                      <>
+                        <div className="info-row">
+                          <div className="info-label">Empresa:</div>
+                          <div className="info-value">{empresaData.nombre}</div>
+                        </div>
+                        <div className="info-row">
+                          <div className="info-label">Teléfono Empresa:</div>
+                          <div className="info-value">{empresaData.contactoTelefono}</div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
             </section>
 
-            {/* Historial de reservaciones */}
+            {/* Sección de reservaciones recientes */}
             <section className="perfil-section">
               <div className="sectionperfil-header">
-                <h2>Historial de Reservaciones</h2>
-                <Link to="/historial" className="ver-todas">
-                  Ver todas
+                <h2>Reservaciones Recientes</h2>
+                <Link to="/historial" className="edit-button">
+                  <span>Ver todas</span>
+                  <ChevronRight size={18} />
                 </Link>
               </div>
               <div className="section-content">
-                <div className="reservaciones-lista">
-                  {reservacionesRecientes.map(reserva => (
-                    <div className="reservacion-item" key={reserva.id}>
-                      <div className="reservacion-info">
-                        <div className="vehicle-cell">
-                          <div className="vehicle-img-container">
-                            <img src={vehicleImages[reserva.tipo]} alt={reserva.vehiculo} className="vehicle-thumbnail" />
-                          </div>
-                          <div className="vehicleperfil-info">
-                            <div className="vehicle-name">{reserva.vehiculo}</div>
-                            <div className="vehicle-type">{reserva.tipo}</div>
-                          </div>
-                        </div>
-                        <div className="reservacion-fecha">{reserva.fecha}</div>
-                        <div className="reservacion-detalles">
-                          <div className="reservacion-total">{reserva.total}</div>
-                          <span className={`status-badge ${getStatusClass(reserva.estado)}`}>
-                            {reserva.estado}
-                          </span>
-                        </div>
-                      </div>
-                      <Link to={`/historial/${reserva.id}`} className="reservacion-arrow" aria-label="Ver detalles de reservación">
-                        <ArrowRight size={20} strokeWidth={2.5} />
-                      </Link>
-                    </div>
-                  ))}
-                </div>
+                {renderRecentReservations()}
               </div>
             </section>
           </div>
@@ -353,8 +537,11 @@ export default function Perfil() {
       {/* Modal de confirmación para eliminar cuenta */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => {
+          setIsDeleteModalOpen(false);
+          setIsLoginModalOpen(true);
+        }}
         title="¿Estás seguro de que quiere eliminar su cuenta?"
         message="Esta acción no se puede deshacer. Todos sus datos serán eliminados permanentemente."
         confirmText="Estoy seguro"
@@ -364,8 +551,11 @@ export default function Perfil() {
       {/* Modal de confirmación para cerrar sesión */}
       <ConfirmationModal
         isOpen={isLogoutModalOpen}
-        onClose={handleCancelLogout}
-        onConfirm={handleConfirmLogout}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={() => {
+          localStorage.removeItem("auth");
+          window.location.href = "/";
+        }}
         title="¿Estás seguro de que desea cerrar sesión?"
         message="Tendrás que volver a iniciar sesión para acceder a tu cuenta."
         confirmText="Estoy seguro"
@@ -375,14 +565,21 @@ export default function Perfil() {
       {/* Modal de login para verificar identidad */}
       <LoginPopUp 
         isOpen={isLoginModalOpen}
-        onClose={handleLoginClose}
-        onLoginSuccess={handleLoginSuccess} 
-        onForgotPassword={handleForgotPassword}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={() => {
+          console.log("Identidad verificada, cuenta eliminada");
+          setIsLoginModalOpen(false);
+          window.location.href = "/";
+        }} 
+        onForgotPassword={() => {
+          setIsLoginModalOpen(false);
+          console.log("Redirigir a recuperación de contraseña");
+        }}
       />
 
       <Footer />
     </div>
-  )
+  );
 }
 
 

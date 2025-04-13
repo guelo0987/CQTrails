@@ -17,6 +17,14 @@ interface RegisterData {
     contactoTelefono: string;
 }
 
+// New interface for updating user and empresa
+interface UpdateUserAndEmpresaDTO {
+    currentEmail: string;
+    newNombre: string;
+    newApellido: string;
+    newEmail: string;
+}
+
 class AuthService {
     private baseURL: string;
 
@@ -292,6 +300,53 @@ class AuthService {
             }, expiresIn);
         } catch (error) {
             console.error('Error al configurar el manejador de expiración del token:', error);
+        }
+    }
+
+    /**
+     * Update user and empresa information
+     * @param updateData Data for updating user and empresa
+     * @returns Promise with update response
+     */
+    async updateUserAndEmpresa(updateData: UpdateUserAndEmpresaDTO) {
+        try {
+            const response = await axios.put(
+                `${this.baseURL}${endpoints.auth.updateUserAndEmpresa}`, 
+                updateData,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.getToken()}`
+                    }
+                }
+            );
+            
+            const data = response.data;
+            
+            // If email was updated, we need to update the stored user data
+            if (updateData.currentEmail !== updateData.newEmail) {
+                const currentUser = this.getCurrentUser();
+                if (currentUser) {
+                    const updatedUser = {
+                        ...currentUser,
+                        nombre: updateData.newNombre,
+                        apellido: updateData.newApellido,
+                        email: updateData.newEmail
+                    };
+                    
+                    // Update the user data in localStorage
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+            }
+            
+            return data;
+        } catch (error) {
+            console.error('Error updating user and empresa:', error);
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+                console.error('Error response status:', error.response.status);
+            }
+            throw error;
         }
     }
 }

@@ -48,15 +48,12 @@ const formatDateTime = (dateString) => {
 
 // Función para procesar la imagen del vehículo
 const processVehicleImage = (vehiculo) => {
-  // Si tiene image_url, procesarlo con nuestro helper
-  if (vehiculo.image_url) {
-    const defaultImage = vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default;
-    return getDirectGoogleDriveImageUrl(vehiculo.image_url, defaultImage);
-  }
+  // Try all possible image URL properties
+  const imageSource = vehiculo.imageUrl || vehiculo.Image_url || vehiculo.image_url || vehiculo.imagen || vehiculo.imagenUrl;
   
-  // Si tiene imagen ya procesada, usarla
-  if (vehiculo.imagen && typeof vehiculo.imagen === 'string' && (vehiculo.imagen.startsWith('http') || vehiculo.imagen.startsWith('https'))) {
-    return vehiculo.imagen;
+  if (imageSource) {
+    const defaultImage = vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default;
+    return getDirectGoogleDriveImageUrl(imageSource, defaultImage);
   }
   
   // Usar imagen por defecto según tipo de vehículo
@@ -167,10 +164,23 @@ export default function DetallesReservacion() {
           setReservacionInfo(reservacion);
           
           // Asignar imágenes a los vehículos
-          const vehiculosConImagen = reservacion.vehiculos.map(vehiculo => ({
-            ...vehiculo,
-            imagen: processVehicleImage(vehiculo)
-          }));
+          const vehiculosConImagen = reservacion.vehiculos.map(vehiculo => {
+            // Log to help with debugging
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Vehicle image properties:', {
+                imageUrl: vehiculo.imageUrl,
+                Image_url: vehiculo.Image_url,
+                image_url: vehiculo.image_url,
+                imagenUrl: vehiculo.imagenUrl,
+                imagen: vehiculo.imagen
+              });
+            }
+            
+            return {
+              ...vehiculo,
+              imagen: processVehicleImage(vehiculo)
+            };
+          });
           
           setVehiculosReservados(vehiculosConImagen);
         } else {
@@ -433,8 +443,11 @@ export default function DetallesReservacion() {
                     <div className="vehiculo-info">
                       <div className="vehiculo-imagen">
                         <img 
-                          src={getDirectGoogleDriveImageUrl(vehiculo.image_url, vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default)} 
-                          alt={vehiculo.modelo}
+                          src={getDirectGoogleDriveImageUrl(
+                            vehiculo.imageUrl || vehiculo.Image_url || vehiculo.image_url || vehiculo.imagen || vehiculo.imagenUrl, 
+                            vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default
+                          )} 
+                          alt={vehiculo.modelo || "Vehículo"}
                           onError={(e) => {
                             console.log("Image failed to load:", e.target.src);
                             e.target.onerror = null;

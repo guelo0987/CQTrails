@@ -134,13 +134,58 @@ export default function Perfil() {
 
         const reservations = await reservationService.getUserReservations(user.idUsuario);
         
+        // Log the raw reservations data in development mode to help troubleshoot
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Raw reservations data:', reservations);
+        }
         
         // Tomar solo las 3 más recientes
         const recentOnes = Array.isArray(reservations) ? 
           reservations.slice(0, 3) : 
           [];
+        
+        // Process reservations to extract and normalize vehicle data
+        const processedReservations = recentOnes.map(reservation => {
+          // Get first vehicle from the vehicles array (if exists)
+          const firstVehicle = reservation.vehiculos && reservation.vehiculos.length > 0 
+            ? reservation.vehiculos[0] 
+            : null;
+            
+          // Add vehicle image properties directly to the reservation for easier access
+          return {
+            ...reservation,
+            // Keep the vehicle data properties needed for display
+            vehiculo: firstVehicle?.modelo || "Vehículo",
+            tipoVehiculo: firstVehicle?.tipoVehiculo || "Tipo de vehículo",
+            // Extract image URL from the vehicle - keep raw value for processing later
+            imageUrl: firstVehicle?.imageUrl,
+            image_url: firstVehicle?.image_url,
+            Image_url: firstVehicle?.Image_url,
+            imagenUrl: firstVehicle?.imagenUrl,
+            imagen: firstVehicle?.imagen,
+            // Store original vehicle for direct access
+            firstVehicleData: firstVehicle
+          };
+        });
           
-        setRecentReservations(recentOnes);
+        // Log processed reservations with image data
+        if (process.env.NODE_ENV === 'development' && processedReservations.length > 0) {
+          processedReservations.forEach(reservation => {
+            console.log(`Processed reservation ${reservation.id || reservation.idReservacion} vehicle image properties:`, {
+              vehiculo: reservation.vehiculo,
+              tipoVehiculo: reservation.tipoVehiculo,
+              imageUrl: reservation.imageUrl,
+              image_url: reservation.image_url,
+              Image_url: reservation.Image_url,
+              imagenUrl: reservation.imagenUrl,
+              imagen: reservation.imagen,
+              // Log the raw vehicle data for debugging
+              rawVehiculo: reservation.vehiculos && reservation.vehiculos.length > 0 ? reservation.vehiculos[0] : null
+            });
+          });
+        }
+          
+        setRecentReservations(processedReservations);
       } catch (error) {
         console.error('Error al obtener reservaciones recientes:', error);
         setReservationError(error.message);
@@ -320,11 +365,46 @@ export default function Perfil() {
     return (
       <div className="reservations-table">
         {recentReservations.map((reservacion) => {
-          // Procesar imagen para obtener URL directa
-          const vehicleImg = reservacion.image_url 
-            ? getDirectGoogleDriveImageUrl(reservacion.image_url, vehicleImages[reservacion.tipoVehiculo] || furgoneta1) 
+          // Get all possible image URL properties and process image to get direct URL
+          let vehicleImageSource;
+          
+          // Check if we have a vehicle with imageUrl in JSON format
+          if (reservacion.vehiculos && reservacion.vehiculos.length > 0 && reservacion.vehiculos[0].imageUrl) {
+            vehicleImageSource = reservacion.vehiculos[0].imageUrl;
+          } else if (reservacion.firstVehicleData?.imageUrl) {
+            vehicleImageSource = reservacion.firstVehicleData.imageUrl;
+          } else {
+            // Use normalized properties we added earlier
+            vehicleImageSource = reservacion.imageUrl || 
+                               reservacion.Image_url || 
+                               reservacion.image_url || 
+                               reservacion.imagenUrl ||
+                               reservacion.imagen;
+          }
+          
+          // Debug logging for image URLs
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Reservation ID ${reservacion.id || reservacion.idReservacion} image sources:`, {
+              vehiculosArray: reservacion.vehiculos,
+              firstVehicleImageUrl: reservacion.vehiculos && reservacion.vehiculos.length > 0 ? reservacion.vehiculos[0].imageUrl : null,
+              firstVehicleData: reservacion.firstVehicleData,
+              image_url: reservacion.image_url,
+              Image_url: reservacion.Image_url,
+              imageUrl: reservacion.imageUrl,
+              imagenUrl: reservacion.imagenUrl,
+              imagen: reservacion.imagen,
+              selected: vehicleImageSource
+            });
+          }
+                                    
+          const vehicleImg = vehicleImageSource
+            ? getDirectGoogleDriveImageUrl(vehicleImageSource, vehicleImages[reservacion.tipoVehiculo] || furgoneta1) 
             : vehicleImages[reservacion.tipoVehiculo] || furgoneta1;
-            
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`Processed vehicle image for reservation ${reservacion.id || reservacion.idReservacion}:`, vehicleImg);
+          }
+          
           return (
             <div 
               key={reservacion.id || reservacion.idReservacion} 
@@ -337,7 +417,12 @@ export default function Perfil() {
                     <img 
                       src={vehicleImg} 
                       alt={reservacion.tipoVehiculo || "Vehículo"} 
-                      className="vehicle-thumbnail" 
+                      className="vehicle-thumbnail"
+                      onError={(e) => {
+                        console.log("Profile vehicle image failed to load:", e.target.src);
+                        e.target.onerror = null;
+                        e.target.src = vehicleImages[reservacion.tipoVehiculo] || furgoneta1;
+                      }}
                     />
                   </div>
                   <div className="vehicleperfil-info">

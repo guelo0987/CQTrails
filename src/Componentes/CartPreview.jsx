@@ -39,9 +39,21 @@ const CartPreview = ({ items = [], isVisible }) => {
         {items.map((item) => (
           <div key={item.id} className="preview-item">
             <img 
-              src={getDirectGoogleDriveImageUrl(item.vehiculo?.imagenUrl, 'https://placehold.co/300x200/CCCCCC/666666?text=Sin+Imagen')} 
+              src={getDirectGoogleDriveImageUrl(
+                item.vehiculo?.imagenUrl || 
+                item.vehiculo?.imageUrl || 
+                item.vehiculo?.image_url || 
+                item.vehiculo?.Image_url || 
+                item.vehiculo?.imagen, 
+                'https://placehold.co/300x200/CCCCCC/666666?text=Sin+Imagen'
+              )} 
               alt={item.vehiculo?.modelo || 'Vehículo'} 
-              className="preview-item-image" 
+              className="preview-item-image"
+              onError={(e) => {
+                console.log("CartPreview image failed to load:", e.target.src);
+                e.target.onerror = null;
+                e.target.src = 'https://placehold.co/300x200/CCCCCC/666666?text=Sin+Imagen';
+              }}
             />
             <div className="preview-item-details">
               <h4>{item.vehiculo?.modelo || 'Vehículo no disponible'}</h4>

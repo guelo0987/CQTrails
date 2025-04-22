@@ -31,13 +31,13 @@ export default function AgregarReserva() {
         const storedVehicleData = JSON.parse(localStorage.getItem('selectedVehicle'));
         if (!storedVehicleData) return;
         
-        console.log("Loaded vehicle data from localStorage:", storedVehicleData);
+        
         
         // Try to fetch detailed vehicle data from API to get all images
         try {
           if (storedVehicleData.id) {
             const apiVehicleData = await VehiculeService.getVehiculeById(storedVehicleData.id);
-            console.log("Fetched detailed vehicle data from API:", apiVehicleData);
+            
             
             // Store the raw API data
             setVehicleDetails(apiVehicleData);

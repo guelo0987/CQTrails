@@ -311,10 +311,13 @@ function Reservar() {
   // Mapeo de vehículos para VehicleGrid - Now with fallback for missing properties
   const mappedVehicles = filteredVehicles.map(vehicle => {
     console.log("Processing vehicle:", vehicle.idVehiculo, vehicle.modelo);
-    console.log("Raw image_url:", vehicle.image_url);
+    
+    // Collect all possible image URL properties
+    const imageUrlData = vehicle.image_url || vehicle.Image_url || vehicle.imageUrl || vehicle.imagenUrl || vehicle.imagen;
+    console.log("Raw image data:", imageUrlData);
     
     // Intentar usar el helper para obtener la URL directa
-    const imageUrl = getDirectGoogleDriveImageUrl(vehicle.image_url, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image");
+    const imageUrl = getDirectGoogleDriveImageUrl(imageUrlData, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image");
     console.log("Processed image URL:", imageUrl);
     
     return {
@@ -324,7 +327,12 @@ function Reservar() {
       model: vehicle.modelo || "Sin modelo",
       year: vehicle.ano ? vehicle.ano.toString() : "N/A",
       image: imageUrl,
-      image_url: vehicle.image_url, // Include the original image_url JSON
+      // Store all original image properties for reference
+      image_url: vehicle.image_url,
+      Image_url: vehicle.Image_url,
+      imageUrl: vehicle.imageUrl,
+      imagenUrl: vehicle.imagenUrl,
+      imagen: vehicle.imagen,
       rawData: vehicle, // Include the original vehicle data
       seats: vehicle.capacidad || 0,
       transmision: vehicle.transmision || "Manual",

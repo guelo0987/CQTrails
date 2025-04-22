@@ -142,7 +142,10 @@ const VehicleGrid = ({ vehicles }) => {
 
             <div className="vehicle-image-container">
               <img 
-                src={getDirectGoogleDriveImageUrl(vehicle.image, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image")} 
+                src={getDirectGoogleDriveImageUrl(
+                  vehicle.image || vehicle.Image_url || vehicle.image_url || vehicle.imagen || vehicle.imagenUrl, 
+                  "https://placehold.co/300x200/CCCCCC/666666?text=No+Image"
+                )} 
                 alt={`${vehicle.brand} ${vehicle.model}`} 
                 onLoad={(e) => {
                   console.log(`Image loaded successfully for vehicle ${vehicle.id} - ${vehicle.model}`);
@@ -156,7 +159,7 @@ const VehicleGrid = ({ vehicles }) => {
                 }}
                 className="vehicle-image"
               />
-              <TestImageComponent vehicleId={vehicle.id} image={vehicle.image} />
+              <TestImageComponent vehicleId={vehicle.id} image={vehicle.image || vehicle.Image_url || vehicle.image_url || vehicle.imagen || vehicle.imagenUrl} />
             </div>
 
             <div className="vehicle-details">

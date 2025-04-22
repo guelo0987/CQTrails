@@ -281,19 +281,29 @@ export default function MiCarrito() {
   }
 
   // Formatear los datos de los ítems para el componente CartItem
-  const formattedCartItems = cartItems.map(item => ({
-    id: item.id,
-    vehiculo: item.vehiculo?.modelo || 'Vehículo no disponible',
-    tipo: item.vehiculo?.tipoVehiculo || 'Tipo no disponible',
-    imagen: getDirectGoogleDriveImageUrl(item.vehiculo?.image_url, 'https://placehold.co/300x200/CCCCCC/666666?text=No+Image'),
-    fechaInicio: new Date(item.fechaInicio),
-    fechaFin: new Date(item.fechaFin),
-    cantidad: item.cantidad,
-    precio: item.price,
-    subtotal: item.subTotal,
-    ciudadInicio: item.ciudadInicio?.nombre || 'Ciudad no disponible',
-    ciudadFin: item.ciudadFin?.nombre || 'Ciudad no disponible'
-  }))
+  const formattedCartItems = cartItems.map(item => {
+    // Get all possible image URL properties from the vehicle
+    const vehicleImageSource = item.vehiculo?.image_url || 
+                              item.vehiculo?.Image_url || 
+                              item.vehiculo?.imageUrl || 
+                              item.vehiculo?.imagenUrl ||
+                              item.vehiculo?.imagen;
+    
+    return {
+      id: item.id,
+      vehiculo: item.vehiculo?.modelo || 'Vehículo no disponible',
+      tipo: item.vehiculo?.tipoVehiculo || 'Tipo no disponible',
+      imagen: getDirectGoogleDriveImageUrl(vehicleImageSource, 'https://placehold.co/300x200/CCCCCC/666666?text=No+Image'),
+      image_url: vehicleImageSource, // Store original for reference
+      fechaInicio: new Date(item.fechaInicio),
+      fechaFin: new Date(item.fechaFin),
+      cantidad: item.cantidad,
+      precio: item.price,
+      subtotal: item.subTotal,
+      ciudadInicio: item.ciudadInicio?.nombre || 'Ciudad no disponible',
+      ciudadFin: item.ciudadFin?.nombre || 'Ciudad no disponible'
+    }
+  })
 
   return (
     <div className="micarrito-container">

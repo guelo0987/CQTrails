@@ -24,7 +24,7 @@ function VehicleGallery({ vehicle }) {
     const vehicleData = vehicle || JSON.parse(localStorage.getItem('selectedVehicle'))
     
     if (vehicleData) {
-      console.log("VehicleGallery received vehicle data:", vehicleData);
+      
       
       // Get the vehicle's image_url from API or the image property from the vehicle object
       // On the detail page, the image_url property should be available directly or nested in raw data
@@ -34,9 +34,9 @@ function VehicleGallery({ vehicle }) {
       let allVehicleImages = [];
       
       if (imageUrlData) {
-        console.log("Processing image data:", imageUrlData);
+        
         allVehicleImages = getAllGoogleDriveImages(imageUrlData, defaultVehicleImage);
-        console.log("All processed vehicle images:", allVehicleImages);
+        
       }
       
       // If no images were found in the API data, use default images based on vehicle type
@@ -81,7 +81,7 @@ function VehicleGallery({ vehicle }) {
         ]);
       } else {
         // Use the API images
-        console.log("Using API images for gallery");
+        
         const galleryImages = allVehicleImages.map((src, index) => ({
           id: index + 1,
           src,

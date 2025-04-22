@@ -28,23 +28,11 @@ function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) 
     onUpdateQuantity(item.id, newQuantity)
   }
 
-  // Log available image data for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`CartItem ID ${item.id} image data:`, {
-      imagen: item.imagen,
-      image_url: item.image_url
-    });
-  }
-
   // Process vehicle image to get direct Google Drive URL if needed
   const processedImage = item.imagen || (
     item.image_url ? getDirectGoogleDriveImageUrl(item.image_url, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image") : 
     "https://placehold.co/300x200/CCCCCC/666666?text=No+Image"
   );
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`CartItem ID ${item.id} processed image:`, processedImage);
-  }
 
   // Solo calculamos el subtotal si no es header
   const subtotal = item.precio * item.cantidad
@@ -58,11 +46,6 @@ function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) 
             alt={item.vehiculo} 
             className="cart-item-image" 
             onError={(e) => {
-              console.log("Image failed to load:", e.target.src);
-              console.log("Original image sources:", {
-                imagen: item.imagen,
-                image_url: item.image_url
-              });
               e.target.onerror = null;
               // Try to use the default placeholder
               e.target.src = "https://placehold.co/300x200/CCCCCC/666666?text=No+Image";

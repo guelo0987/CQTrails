@@ -178,9 +178,13 @@ const Sidebar = ({
             value={priceRange}
             onChange={(e) => onPriceChange(Number(e.target.value))}
             className="price-slider"
+            style={{
+              background: `linear-gradient(to right, #09A603 0%, #09A603 ${priceRange / 5}%, #e0e0e0 ${priceRange / 5}%, #e0e0e0 100%)`
+            }}
           />
           <div className="price-range">
-            Max: ${priceRange.toFixed(2)}
+            <span>$0.00</span>
+            <span>${priceRange.toFixed(2)}</span>
           </div>
         </div>
       </div>

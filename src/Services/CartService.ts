@@ -61,7 +61,6 @@ class CartService {
       }
       return response.data;
     } catch (error) {
-      console.error('Error al obtener el carrito del usuario:', error);
       return [];
     }
   }

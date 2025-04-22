@@ -10,12 +10,6 @@ class ReservationService {
 
   async makeReservation(userId: number) {
     try {
-      // Log the request details for debugging
-      console.log('Making reservation request:', {
-        url: `${this.baseUrl}${endpoints.reservaciones.base}`,
-        userId: userId
-      });
-      
       // Send the userId as a raw number in the request body, exactly as the backend expects
       const response = await axios.post(`${this.baseUrl}${endpoints.reservaciones.base}`, userId, {
         headers: {
@@ -23,7 +17,6 @@ class ReservationService {
         }
       });
       
-      console.log('Reservation response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error making reservation:', error);
@@ -43,9 +36,7 @@ class ReservationService {
 
   async getReservationDetail(userId: number, reservationId: number) {
     try {
-      console.log(`Fetching reservation detail: userId=${userId}, reservationId=${reservationId}`);
       const response = await axios.get(`${this.baseUrl}${endpoints.reservaciones.detalle(userId, reservationId)}`);
-      console.log('Reservation detail response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching reservation detail:', error);

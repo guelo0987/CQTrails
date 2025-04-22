@@ -35,7 +35,6 @@ class VehiculeService {
       
       return vehicles;
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
       // Return empty array or cached data if available
       return this.vehiclesCache || [];
     }
@@ -52,8 +51,6 @@ class VehiculeService {
       const response = await axios.get(`${this.baseUrl}api/Vehicule/${id}`);
       return VehiculeModel.fromJSON(response.data);
     } catch (error) {
-      console.error(`Error fetching vehicle with ID ${id}:`, error);
-      
       // Try to find it in the cache
       if (this.vehiclesCache) {
         const cachedVehicle = this.vehiclesCache.find(v => v.idVehiculo === id);
@@ -74,7 +71,6 @@ class VehiculeService {
       const response = await axios.get(`${this.baseUrl}${endpoints.vehicule.porCapacidad(capacity)}`);
       return response.data.map((item: any) => VehiculeModel.fromJSON(item));
     } catch (error) {
-      console.error(`Error fetching vehicles with capacity ${capacity}:`, error);
       throw error;
     }
   }
@@ -88,8 +84,6 @@ class VehiculeService {
       const response = await axios.get(`${this.baseUrl}${endpoints.vehicule.todasCapacidades}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching capacities:', error);
-      
       // If API fails, extract capacities from cached vehicles
       if (this.vehiclesCache) {
         const capacities = Array.from(new Set(this.vehiclesCache.map(v => v.capacidad)))
@@ -111,8 +105,6 @@ class VehiculeService {
       const response = await axios.get(`${this.baseUrl}${endpoints.vehicule.marcas}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching brands:', error);
-      
       // If API fails, extract brands from cached vehicles
       if (this.vehiclesCache) {
         const brands = Array.from(new Set(this.vehiclesCache.map(v => v.tipoVehiculo)))
@@ -134,8 +126,6 @@ class VehiculeService {
       const response = await axios.get(`${this.baseUrl}${endpoints.vehicule.modelos(brand)}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching models for brand ${brand}:`, error);
-      
       // Get vehicles from cache or fetch them if not available
       const vehicles = await this.getVehiclesForFallback();
       
@@ -166,11 +156,8 @@ class VehiculeService {
       // Check if we have a cached result that is not too old (1 hour)
       const cachedResult = this.yearsRequestCache.get(cacheKey);
       if (cachedResult && (Date.now() - cachedResult.timestamp < 3600000)) {
-        console.log(`Using cached years for model="${model}" and brand="${brand}": ${cachedResult.years}`);
         return cachedResult.years;
       }
-      
-      console.log(`Fetching years for model="${model}" and brand="${brand}"`);
       
       let apiSucceeded = false;
       
@@ -181,13 +168,11 @@ class VehiculeService {
           // Try API call first - IMPORTANT: The endpoint expects (marca, modelo) order
           // Note we're switching brand and model order to match API expectations
           const url = `${this.baseUrl}${endpoints.vehicule.anos(brand, model)}`;
-          console.log(`Trying API call to: ${url}`);
           
           const response = await axios.get(url, { timeout: 2000 });
           
           if (response.data && Array.isArray(response.data) && response.data.length > 0) {
             const years = response.data.sort((a: number, b: number) => b - a);
-            console.log(`API returned ${years.length} years for model="${model}" and brand="${brand}"`);
             
             // Cache the result
             this.yearsRequestCache.set(cacheKey, {
@@ -202,15 +187,12 @@ class VehiculeService {
           // No need to try the reverse order if the brand is empty
           if (brand && brand.trim() !== '') {
             try {
-              console.log('First API call for years failed, trying reversed parameter order');
               const reverseUrl = `${this.baseUrl}${endpoints.vehicule.anos(model, brand)}`;
-              console.log(`Trying API call to: ${reverseUrl}`);
               
               const reverseResponse = await axios.get(reverseUrl, { timeout: 2000 });
               
               if (reverseResponse.data && Array.isArray(reverseResponse.data) && reverseResponse.data.length > 0) {
                 const years = reverseResponse.data.sort((a: number, b: number) => b - a);
-                console.log(`API with reversed params returned ${years.length} years`);
                 
                 // Cache the result
                 this.yearsRequestCache.set(cacheKey, {
@@ -226,8 +208,6 @@ class VehiculeService {
             }
           }
           
-          console.log('Both API call attempts for years failed, falling back to local filtering');
-          
           // Mark this model as a failing pattern to avoid future API calls
           this.failedApiPatterns.add(model);
         }
@@ -240,7 +220,6 @@ class VehiculeService {
       const vehicles = await this.getVehiclesForFallback();
       
       if (vehicles.length === 0) {
-        console.error('No vehicles available for filtering years');
         const currentYear = new Date().getFullYear();
         const defaultYears = [currentYear, currentYear - 1, currentYear - 2];
         
@@ -253,97 +232,58 @@ class VehiculeService {
         return defaultYears;
       }
       
-      if (!apiSucceeded) {
-        console.log(`Found ${vehicles.length} total vehicles to filter from`);
-        
-        // Define filter functions for different search strategies
-        const exactModelAndBrand = (v: VehiculeModel) => 
-          v.modelo === model && v.tipoVehiculo === brand;
-          
-        const exactModelWithAnyBrand = (v: VehiculeModel) => 
-          v.modelo === model;
-          
-        const containsModelAndBrand = (v: VehiculeModel) => 
-          v.modelo.toLowerCase().includes(model.toLowerCase()) && 
-          (brand ? v.tipoVehiculo.toLowerCase().includes(brand.toLowerCase()) : true);
-          
-        const containsModelWithAnyBrand = (v: VehiculeModel) => 
-          v.modelo.toLowerCase().includes(model.toLowerCase());
-        
-        // Try different filtering strategies from most specific to least specific
-        let filteredVehicles: VehiculeModel[] = [];
-        
-        // 1. Try exact match on both model and brand if brand is provided
-        if (brand && brand.trim() !== '') {
-          filteredVehicles = vehicles.filter(exactModelAndBrand);
-          console.log(`Strategy 1 (exact model+brand match): ${filteredVehicles.length} vehicles`);
-        }
-        
-        // 2. If no results, try exact model match with any brand
-        if (filteredVehicles.length === 0) {
-          filteredVehicles = vehicles.filter(exactModelWithAnyBrand);
-          console.log(`Strategy 2 (exact model match): ${filteredVehicles.length} vehicles`);
-        }
-        
-        // 3. If still no results, try contains match on both model and brand if brand provided
-        if (filteredVehicles.length === 0 && brand && brand.trim() !== '') {
-          filteredVehicles = vehicles.filter(containsModelAndBrand);
-          console.log(`Strategy 3 (contains model+brand): ${filteredVehicles.length} vehicles`);
-        }
-        
-        // 4. If still no results, try contains match on model with any brand
-        if (filteredVehicles.length === 0) {
-          filteredVehicles = vehicles.filter(containsModelWithAnyBrand);
-          console.log(`Strategy 4 (contains model): ${filteredVehicles.length} vehicles`);
-        }
-        
-        // Extract years from the filtered vehicles
-        const years = filteredVehicles
-          .map(v => v.ano)
-          .filter((year, index, self) => self.indexOf(year) === index) // Remove duplicates
-          .sort((a, b) => b - a); // Sort in descending order
-        
-        console.log(`Found ${years.length} unique years:`, years);
-        
-        // Return years if we found any
-        if (years.length > 0) {
-          // Cache the result
-          this.yearsRequestCache.set(cacheKey, {
-            timestamp: Date.now(),
-            years: years
-          });
-          
-          return years;
-        }
+      // Define filter functions for different matching strategies
+      const exactModelAndBrand = (v: VehiculeModel) => 
+        v.modelo === model && v.tipoVehiculo === brand;
+      
+      const exactModelWithAnyBrand = (v: VehiculeModel) => 
+        v.modelo === model;
+      
+      const containsModelAndBrand = (v: VehiculeModel) => 
+        v.modelo.toLowerCase().includes(model.toLowerCase()) && 
+        v.tipoVehiculo.toLowerCase() === brand.toLowerCase();
+      
+      const containsModelWithAnyBrand = (v: VehiculeModel) => 
+        v.modelo.toLowerCase().includes(model.toLowerCase());
+      
+      // Try different filtering strategies in order of precision
+      let filteredVehicles = vehicles.filter(exactModelAndBrand);
+      
+      if (filteredVehicles.length === 0 && brand) {
+        filteredVehicles = vehicles.filter(containsModelAndBrand);
       }
       
-      // Default years as last resort
-      const currentYear = new Date().getFullYear();
-      const defaultYears = [currentYear, currentYear - 1, currentYear - 2];
-      console.log(`No years found, returning default years:`, defaultYears);
+      if (filteredVehicles.length === 0) {
+        filteredVehicles = vehicles.filter(exactModelWithAnyBrand);
+      }
       
-      // Cache the default result
+      if (filteredVehicles.length === 0) {
+        filteredVehicles = vehicles.filter(containsModelWithAnyBrand);
+      }
+      
+      let years: number[] = [];
+      
+      if (filteredVehicles.length > 0) {
+        // Extract and deduplicate years
+        years = Array.from(new Set(filteredVehicles.map(v => v.ano)))
+          .sort((a, b) => b - a); // Sort in descending order (newest first)
+      } else {
+        // If we didn't find any matching vehicles, return default years
+        const currentYear = new Date().getFullYear();
+        years = [currentYear, currentYear - 1, currentYear - 2];
+      }
+      
+      // Cache the result
       this.yearsRequestCache.set(cacheKey, {
         timestamp: Date.now(),
-        years: defaultYears
+        years: years
       });
       
-      return defaultYears;
+      return years;
     } catch (error) {
-      // Handle any unexpected errors
-      console.error(`Error in getYearsByModelAndBrand for model=${model}, brand=${brand}:`, error);
-      
-      // Default years as fallback
+      // If everything fails, return a reasonable default
       const currentYear = new Date().getFullYear();
-      const defaultYears = [currentYear, currentYear - 1, currentYear - 2];
-      
-      // Cache the error result to avoid repeated failures
-      this.yearsRequestCache.set(`${model}|${brand}`, {
-        timestamp: Date.now(),
-        years: defaultYears
-      });
-      
-      return defaultYears;
+      return [currentYear, currentYear - 1, currentYear - 2];
     }
   }
 
@@ -366,7 +306,6 @@ class VehiculeService {
       
       return brandsForModel;
     } catch (error) {
-      console.error(`Error fetching brands for model ${model}:`, error);
       return [];
     }
   }
@@ -377,60 +316,17 @@ class VehiculeService {
    * @returns Promise with list of vehicles
    */
   private async getVehiclesForFallback(): Promise<VehiculeModel[]> {
-    const currentTime = Date.now();
+    // If we have cached vehicles, use them
+    if (this.vehiclesCache && this.vehiclesCache.length > 0) {
+      return this.vehiclesCache;
+    }
     
+    // Otherwise, try to fetch them
     try {
-      // Use cache if available and not expired
-      if (this.vehiclesCache && this.vehiclesCache.length > 0 && 
-          currentTime - this.lastFetchTime < this.cacheDuration) {
-        console.log(`Using cached vehicles data (${this.vehiclesCache.length} vehicles)`);
-        return this.vehiclesCache;
-      }
-      
-      console.log('Cache expired or not available, fetching vehicles from API');
-      
-      // If cache is expired, fetch new data
-      const response = await axios.get(`${this.baseUrl}${endpoints.vehicule.listar}`, {
-        // Add a timeout to prevent long-waiting requests
-        timeout: 5000
-      });
-      
-      // Process and transform the data
-      const vehicles = response.data
-        .map((item: any) => VehiculeModel.fromJSON(item))
-        // Filter out any malformed or invalid vehicles
-        .filter((vehicle: VehiculeModel) => 
-          vehicle && 
-          vehicle.modelo && 
-          vehicle.tipoVehiculo &&
-          vehicle.ano
-        );
-      
-      // Only update cache if we got data
-      if (vehicles && vehicles.length > 0) {
-        console.log(`Updated cache with ${vehicles.length} vehicles`);
-        this.vehiclesCache = vehicles;
-        this.lastFetchTime = currentTime;
-        return vehicles;
-      } else if (this.vehiclesCache) {
-        // If API returned no data but we have cache, use that instead
-        console.log(`API returned no vehicles, using cached data (${this.vehiclesCache.length} vehicles)`);
-        return this.vehiclesCache;
-      }
-      
-      // As a last resort, return an empty array
-      console.error('No vehicles data available');
-      return [];
+      const vehicles = await this.getAllVehicules();
+      return vehicles;
     } catch (error) {
-      console.error('Error in getVehiclesForFallback:', error);
-      
-      // If there's an error but we have cached data, use it
-      if (this.vehiclesCache) {
-        console.log(`Error fetching vehicles, using cached data (${this.vehiclesCache.length} vehicles)`);
-        return this.vehiclesCache;
-      }
-      
-      // As a last resort, return an empty array
+      // If fetch fails, return empty array
       return [];
     }
   }
@@ -442,11 +338,11 @@ class VehiculeService {
    */
   clearYearsCache(model?: string, brand?: string): void {
     if (model && brand) {
+      // Clear specific cache
       this.yearsRequestCache.delete(`${model}|${brand}`);
     } else {
-      // Clear all years cache if no specific model/brand provided
+      // Clear all cache
       this.yearsRequestCache.clear();
-      this.failedApiPatterns.clear();
     }
   }
 }

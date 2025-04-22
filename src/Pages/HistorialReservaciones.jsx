@@ -28,7 +28,6 @@ export default function HistorialReservaciones() {
         }
 
         const data = await reservationService.getUserReservations(userData.idUsuario);
-        console.log('Reservaciones obtenidas:', data);
         setReservations(data || []);
       } catch (error) {
         console.error('Error fetching reservations:', error);
@@ -257,7 +256,6 @@ export default function HistorialReservaciones() {
                     <td className="actions-cell">
                       <button 
                         onClick={() => {
-                          console.log("Navegando a detalles de reservación:", reservation.idReservacion);
                           navigate(`/historial/${reservation.idReservacion}`);
                         }}
                         className="action-button view-button"

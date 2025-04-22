@@ -43,9 +43,9 @@ const VehicleGrid = ({ vehicles }) => {
   // Add a useEffect to log the image URLs for each vehicle
   useEffect(() => {
     if (displayedVehicles && displayedVehicles.length > 0) {
-      console.log("Current displayed vehicles with images:");
+      
       displayedVehicles.forEach(vehicle => {
-        console.log(`Vehicle ID ${vehicle.id} (${vehicle.model}): ${vehicle.image}`);
+        
       });
     }
   }, [displayedVehicles]);
@@ -80,41 +80,6 @@ const VehicleGrid = ({ vehicles }) => {
     }
   }
 
-  // Test Google Drive image URLs for debugging purposes
-  const TestImageComponent = ({ vehicleId, image }) => {
-    if (!image || !image.includes('drive.google.com') && !image.includes('lh3.googleusercontent.com')) {
-      return null; // Only show for Google Drive images
-    }
-    
-    // Extract file ID
-    const match = image.match(/(?:drive\.google\.com\/file\/d\/|lh3\.googleusercontent\.com\/d\/)([^/]+)/);
-    if (!match || !match[1]) return null;
-    
-    const fileId = match[1];
-    
-    // Alternative URLs to try
-    const urls = [
-      { label: "Current", url: image },
-      { label: "Format1", url: `https://lh3.googleusercontent.com/d/${fileId}` },
-      { label: "Format2", url: `https://drive.google.com/uc?export=view&id=${fileId}` },
-      { label: "Format3", url: `https://drive.google.com/thumbnail?id=${fileId}` },
-      { label: "Format4", url: `https://drive.google.com/file/d/${fileId}/preview` }
-    ];
-    
-    return (
-      <div style={{ position: 'absolute', top: '5px', right: '5px', zIndex: 100, backgroundColor: 'rgba(255,255,255,0.9)', padding: '5px', borderRadius: '5px', fontSize: '10px' }}>
-        <div>Test Drive Links - ID: {vehicleId}</div>
-        {urls.map((item, idx) => (
-          <div key={idx} style={{ margin: '3px 0' }}>
-            <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'blue', textDecoration: 'underline' }}>
-              {item.label}
-            </a>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   // Si no hay vehículos, mostrar mensaje
   if (!vehicles || vehicles.length === 0) {
     return (
@@ -148,7 +113,7 @@ const VehicleGrid = ({ vehicles }) => {
                 )} 
                 alt={`${vehicle.brand} ${vehicle.model}`} 
                 onLoad={(e) => {
-                  console.log(`Image loaded successfully for vehicle ${vehicle.id} - ${vehicle.model}`);
+                  
                 }}
                 onError={(e) => {
                   console.log("Image failed to load:", vehicle.image);
@@ -159,7 +124,6 @@ const VehicleGrid = ({ vehicles }) => {
                 }}
                 className="vehicle-image"
               />
-              <TestImageComponent vehicleId={vehicle.id} image={vehicle.image || vehicle.Image_url || vehicle.image_url || vehicle.imagen || vehicle.imagenUrl} />
             </div>
 
             <div className="vehicle-details">

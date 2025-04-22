@@ -45,7 +45,6 @@ function HeaderAuthenticated({ onLogout }) {
 
      
       const items = await CartService.getUserCartItems(userData.idUsuario);
-      console.log('Cart items fetched:', items);
       setCartItems(items || []);
     } catch (error) {
       console.error('Error fetching cart items:', error);

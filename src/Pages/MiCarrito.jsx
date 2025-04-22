@@ -166,8 +166,8 @@ export default function MiCarrito() {
         showCancelButton: true,
         confirmButtonText: 'Sí, vaciar carrito',
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6'
+        confirmButtonColor: '#09A603',
+        cancelButtonColor: '#d33'
       })
       
       if (result.isConfirmed) {
@@ -219,7 +219,7 @@ export default function MiCarrito() {
   const handleConfirmReservation = async () => {
     try {
       setLoading(true)
-      console.log('Creando reservación...')
+      
       
       const userData = authService.getCurrentUser()
       
@@ -228,15 +228,16 @@ export default function MiCarrito() {
       }
 
       // Crear la reservación
-      console.log('Enviando solicitud con userId:', userData.idUsuario)
+     
       const reservation = await reservationService.makeReservation(userData.idUsuario)
-      console.log('Reservación creada:', reservation)
+     
       
       Swal.fire({
         title: '¡Reservación creada!',
         text: 'Tu reservación ha sido creada exitosamente',
         icon: 'success',
-        confirmButtonText: 'Ver mis reservaciones'
+        confirmButtonText: 'Ver mis reservaciones',
+        confirmButtonColor: '#09A603'
       }).then((result) => {
         if (result.isConfirmed) {
           navigate('/historial')

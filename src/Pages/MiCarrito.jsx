@@ -26,6 +26,22 @@ export default function MiCarrito() {
   const [total, setTotal] = useState(0)
   const [subtotal, setSubtotal] = useState(0)
 
+  // Function to calculate totals from cart items
+  const calculateTotals = (items) => {
+    if (items && items.length > 0) {
+      const calculatedSubtotal = items.reduce((acc, item) => acc + item.subTotal, 0)
+      // Calculate total with 13% IVA tax
+      const iva = calculatedSubtotal * 0.13
+      const calculatedTotal = calculatedSubtotal + iva
+      setSubtotal(calculatedSubtotal)
+      setTotal(calculatedTotal)
+    } else {
+      setSubtotal(0)
+      setTotal(0)
+    }
+  }
+
+  // Initial cart fetch
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
@@ -42,16 +58,8 @@ export default function MiCarrito() {
         const items = await CartService.getUserCartItems(userData.idUsuario)
         setCartItems(items)
         
-        // Calcular total y subtotal
-        if (items && items.length > 0) {
-          const calculatedSubtotal = items.reduce((acc, item) => acc + item.subTotal, 0)
-          const calculatedTotal = items.reduce((acc, item) => acc + item.total, 0)
-          setSubtotal(calculatedSubtotal)
-          setTotal(calculatedTotal)
-        } else {
-          setSubtotal(0)
-          setTotal(0)
-        }
+        // Calculate totals from fetched items
+        calculateTotals(items)
       } catch (error) {
         console.error('Error al cargar el carrito:', error)
         setError(error.message || 'Ocurrió un error al cargar los items del carrito')
@@ -71,11 +79,22 @@ export default function MiCarrito() {
     fetchCartItems()
   }, [])
 
+  // Update totals whenever cartItems change
+  useEffect(() => {
+    calculateTotals(cartItems)
+  }, [cartItems])
+
   const handleRemoveItem = async (itemId) => {
     try {
       setLoading(true)
       // Llamar al API para eliminar el ítem
       await CartService.removeItemFromCart(itemId)
+      
+      // Update local cart items
+      const userData = authService.getCurrentUser()
+      const updatedItems = await CartService.getUserCartItems(userData.idUsuario)
+      setCartItems(updatedItems)
+      
       refreshCart() // Refrescar el carrito en el contexto global
       Swal.fire({
         title: 'Éxito',

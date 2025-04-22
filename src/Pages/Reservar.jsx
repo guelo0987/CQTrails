@@ -9,6 +9,10 @@ import Footer from "../Componentes/Footer"
 import "../Estilos/Reservar.css"
 import VehiculeService from "../Services/VehiculeService.ts"
 import { useCart } from '../Context/CartContext'
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
+
+// Importar imágenes por defecto
+import defaultVehicleImage from "../Imagenes/Autobus.png"
 
 function Reservar() {
   const navigate = useNavigate()
@@ -305,20 +309,29 @@ function Reservar() {
   }
 
   // Mapeo de vehículos para VehicleGrid - Now with fallback for missing properties
-  const mappedVehicles = filteredVehicles.map(vehicle => ({
-    id: vehicle.idVehiculo,
-    brand: vehicle.tipoVehiculo || "Sin marca",
-    type: vehicle.tipoVehiculo || "Sin tipo",
-    model: vehicle.modelo || "Sin modelo",
-    year: vehicle.ano ? vehicle.ano.toString() : "N/A",
-    image: vehicle.image_url || vehicle.Image_url || "https://placehold.co/300x200/CCCCCC/666666?text=No+Image",
-    seats: vehicle.capacidad || 0,
-    transmision: vehicle.transmision || "Manual",
-    combustible: vehicle.combustible || "Gasolina",
-    price: vehicle.price || 0,
-    placa: vehicle.placa || "Sin placa",
-    disponible: vehicle.disponible !== undefined ? vehicle.disponible : true
-  }))
+  const mappedVehicles = filteredVehicles.map(vehicle => {
+    console.log("Processing vehicle:", vehicle.idVehiculo, vehicle.modelo);
+    console.log("Raw image_url:", vehicle.image_url);
+    
+    // Intentar usar el helper para obtener la URL directa
+    const imageUrl = getDirectGoogleDriveImageUrl(vehicle.image_url, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image");
+    console.log("Processed image URL:", imageUrl);
+    
+    return {
+      id: vehicle.idVehiculo,
+      brand: vehicle.tipoVehiculo || "Sin marca",
+      type: vehicle.tipoVehiculo || "Sin tipo",
+      model: vehicle.modelo || "Sin modelo",
+      year: vehicle.ano ? vehicle.ano.toString() : "N/A",
+      image: imageUrl,
+      seats: vehicle.capacidad || 0,
+      transmision: vehicle.transmision || "Manual",
+      combustible: vehicle.combustible || "Gasolina",
+      price: vehicle.price || 0,
+      placa: vehicle.placa || "Sin placa",
+      disponible: vehicle.disponible !== undefined ? vehicle.disponible : true
+    };
+  });
 
   // Función para agregar al carrito
   const handleAddToCart = async (vehicle) => {

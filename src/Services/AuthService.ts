@@ -60,11 +60,7 @@ class AuthService {
             return data;
         } catch (error) {
             console.error('Error en login:', error);
-            // Log additional error details if available
-            if (error.response) {
-                console.error('Error response data:', error.response.data);
-                console.error('Error response status:', error.response.status);
-            }
+            
             throw error;
         }
     }

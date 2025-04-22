@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import "../Estilos/VehicleSection.css"
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
 // Importar imágenes de vehículos
 import van from "../Imagenes/Furgoneta.png"
@@ -36,14 +37,20 @@ function VehicleSection() {
         const response = await VehicleService.getAllVehicules();
         
         // Tomar solo los primeros 8 vehículos
-        const firstEightVehicles = response.slice(0, 8).map((vehicle, index) => ({
-          id: vehicle.id || index + 1,
-          name: vehicle.modelo || `Vehículo ${index + 1}`,
-          price: `$${vehicle.price || '99.00'}/ dady`,
-          image: crossover, // Usar Autobus.png para todos
-          logo: defaultLogos[index % defaultLogos.length],
-          bgClass: index % 2 === 0 ? "bg-white" : "bg-mint",
-        }));
+        const firstEightVehicles = response.slice(0, 8).map((vehicle, index) => {
+          // Obtener la imagen del vehículo desde Google Drive o usar una por defecto
+          const defaultImage = defaultImages[index % defaultImages.length];
+          const vehicleImage = getDirectGoogleDriveImageUrl(vehicle.image_url, defaultImage);
+          
+          return {
+            id: vehicle.idVehiculo || index + 1,
+            name: vehicle.modelo || `Vehículo ${index + 1}`,
+            price: `$${vehicle.price || '99.00'}/ dady`,
+            image: vehicleImage,
+            logo: defaultLogos[index % defaultLogos.length],
+            bgClass: index % 2 === 0 ? "bg-white" : "bg-mint",
+          };
+        });
         
         setVehicles(firstEightVehicles);
       } catch (error) {

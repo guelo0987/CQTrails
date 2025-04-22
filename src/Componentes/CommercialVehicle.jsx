@@ -2,6 +2,7 @@ import { Link } from "react-router-dom"
 import { useState, useEffect } from "react"
 import "../Estilos/CommercialVehicles.css"
 import VehiculeService from "../Services/VehiculeService.ts"
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
 // Importamos las imágenes de los vehículos
 import camionDefault from "../Imagenes/Camionp.png"
@@ -19,7 +20,11 @@ function CommercialVehicles() {
         const allVehicles = await VehiculeService.getAllVehicules();
         const truckVehicles = allVehicles
           .filter(vehicle => vehicle.tipoVehiculo === "Truck")
-          .slice(0, 2); // Solo tomamos los primeros 2 vehículos tipo truck
+          .slice(0, 2) // Solo tomamos los primeros 2 vehículos tipo truck
+          .map(truck => ({
+            ...truck,
+            imageUrl: getDirectGoogleDriveImageUrl(truck.image_url, camionDefault)
+          }));
         setTrucks(truckVehicles);
       } catch (error) {
         console.error("Error fetching truck vehicles:", error);
@@ -62,7 +67,7 @@ function CommercialVehicles() {
 
         <div className="commercial-grid">
           {trucks.map((truck, index) => (
-            <div className="commercial-card" key={truck.id || index}>
+            <div className="commercial-card" key={truck.idVehiculo || index}>
               <div className="card-content">
                 <img src={getBrandLogo(truck.marca)} alt={truck.marca || "Marca"} className="brand-logo" />
                 <h3 className="commercial-brand">
@@ -73,7 +78,7 @@ function CommercialVehicles() {
                 <div className="price-badge">$ {truck.price || "0"}</div>
               </div>
               <div className="commercial-image">
-                <img src={camionDefault} alt={`${truck.marca || "Marca"} ${truck.modelo || "Modelo"}`} />
+                <img src={truck.imageUrl} alt={`${truck.marca || "Marca"} ${truck.modelo || "Modelo"}`} />
               </div>
             </div>
           ))}

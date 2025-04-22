@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import "../Estilos/VehicleGallery.css"
-import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
+import getDirectGoogleDriveImageUrl, { getAllGoogleDriveImages } from "../Utils/HelperDriveGoogle.ts"
 
 // Importar imágenes adicionales para cada tipo de vehículo
 import interiorFurgoneta from "../Imagenes/FurgonetaInterior.jpg"
@@ -26,54 +26,70 @@ function VehicleGallery({ vehicle }) {
     if (vehicleData) {
       console.log("VehicleGallery received vehicle data:", vehicleData);
       
-      // Determinar qué conjunto de imágenes usar basado en el tipo de vehículo
-      let interiorImage, lateralImage;
-      let vehicleType = vehicleData.type?.toLowerCase() || '';
+      // Get the vehicle's image_url from API or the image property from the vehicle object
+      // On the detail page, the image_url property should be available directly or nested in raw data
+      const imageUrlData = vehicleData.image_url || vehicleData.rawData?.image_url || vehicleData.image || '';
       
-      // Procesar imagen principal del vehículo desde Google Drive si existe
-      let vehicleImage = vehicleData.image || '';
-      console.log("Original vehicle image:", vehicleImage);
+      // Get all images from the Google Drive JSON
+      let allVehicleImages = [];
       
-      // Si la imagen es una cadena JSON, procesarla con el helper
-      if (typeof vehicleImage === 'string' && (vehicleImage.includes('drive.google.com') || vehicleImage.includes('{"image1"'))) {
-        vehicleImage = getDirectGoogleDriveImageUrl(vehicleImage, defaultVehicleImage);
-        console.log("Processed vehicle image with helper:", vehicleImage);
+      if (imageUrlData) {
+        console.log("Processing image data:", imageUrlData);
+        allVehicleImages = getAllGoogleDriveImages(imageUrlData, defaultVehicleImage);
+        console.log("All processed vehicle images:", allVehicleImages);
       }
       
-      switch(vehicleType) {
-        case 'furgoneta':
-          interiorImage = interiorFurgoneta;
-          lateralImage = lateralFurgoneta;
-          break;
-        case 'suv':
-          interiorImage = interiorSuv;
-          lateralImage = lateralSuv;
-          break;
-        case 'camion':
-          interiorImage = interiorCamion;
-          lateralImage = lateralCamion;
-          break;
-        case 'autobus':
-          interiorImage = interiorBus;
-          lateralImage = lateralBus;
-          break;
-        case 'ambulancias':
-          interiorImage = interiorAmbulancia;
-          lateralImage = lateralAmbulancia;
-          break;
-        default:
-          interiorImage = vehicleImage;
-          lateralImage = vehicleImage;
+      // If no images were found in the API data, use default images based on vehicle type
+      if (allVehicleImages.length === 0 || (allVehicleImages.length === 1 && allVehicleImages[0] === defaultVehicleImage)) {
+        console.log("No API images found, using type-based defaults");
+        
+        let interiorImage, lateralImage;
+        let vehicleType = vehicleData.type?.toLowerCase() || '';
+        let mainImage = defaultVehicleImage;
+        
+        switch(vehicleType) {
+          case 'furgoneta':
+            interiorImage = interiorFurgoneta;
+            lateralImage = lateralFurgoneta;
+            break;
+          case 'suv':
+            interiorImage = interiorSuv;
+            lateralImage = lateralSuv;
+            break;
+          case 'camion':
+            interiorImage = interiorCamion;
+            lateralImage = lateralCamion;
+            break;
+          case 'autobus':
+            interiorImage = interiorBus;
+            lateralImage = lateralBus;
+            break;
+          case 'ambulancias':
+            interiorImage = interiorAmbulancia;
+            lateralImage = lateralAmbulancia;
+            break;
+          default:
+            interiorImage = mainImage;
+            lateralImage = mainImage;
+        }
+
+        // Create image objects for the gallery
+        setVehicleImages([
+          { id: 1, src: mainImage, alt: "Vista frontal" },
+          { id: 2, src: interiorImage, alt: "Vista interior" },
+          { id: 3, src: lateralImage, alt: "Vista lateral" }
+        ]);
+      } else {
+        // Use the API images
+        console.log("Using API images for gallery");
+        const galleryImages = allVehicleImages.map((src, index) => ({
+          id: index + 1,
+          src,
+          alt: `Vista ${index + 1}`
+        }));
+        
+        setVehicleImages(galleryImages);
       }
-
-      console.log("Tipo de vehículo:", vehicleType);
-      console.log("Imágenes seleccionadas:", [vehicleImage, interiorImage, lateralImage]);
-
-      setVehicleImages([
-        { id: 1, src: vehicleImage, alt: "Vista frontal" },
-        { id: 2, src: interiorImage, alt: "Vista interior" },
-        { id: 3, src: lateralImage, alt: "Vista lateral" }
-      ])
     }
   }, [vehicle])
 
@@ -91,24 +107,26 @@ function VehicleGallery({ vehicle }) {
             }}
           />
         </div>
-        <div className="thumbnails-container">
-          {vehicleImages.map((image, index) => (
-            <div
-              key={image.id}
-              className={`thumbnail ${selectedImage === index ? "active" : ""}`}
-              onClick={() => setSelectedImage(index)}
-            >
-              <img 
-                src={image.src} 
-                alt={image.alt} 
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://placehold.co/150x100/CCCCCC/666666?text=No+Image";
-                }}
-              />
-            </div>
-          ))}
-        </div>
+        {vehicleImages.length > 1 && (
+          <div className="thumbnails-container">
+            {vehicleImages.map((image, index) => (
+              <div
+                key={image.id}
+                className={`thumbnail ${selectedImage === index ? "active" : ""}`}
+                onClick={() => setSelectedImage(index)}
+              >
+                <img 
+                  src={image.src} 
+                  alt={image.alt} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://placehold.co/150x100/CCCCCC/666666?text=No+Image";
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

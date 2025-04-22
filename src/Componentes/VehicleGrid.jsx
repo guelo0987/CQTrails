@@ -4,6 +4,7 @@ import { Fuel, Users, Settings } from "lucide-react"
 import { useState, useEffect } from "react"
 import LoginPopUp from "./LoginPopUp"
 import Pagination from "./Pagination"
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
 const VehicleGrid = ({ vehicles }) => {
   const navigate = useNavigate()
@@ -141,7 +142,7 @@ const VehicleGrid = ({ vehicles }) => {
 
             <div className="vehicle-image-container">
               <img 
-                src={vehicle.image} 
+                src={getDirectGoogleDriveImageUrl(vehicle.image, "https://placehold.co/300x200/CCCCCC/666666?text=No+Image")} 
                 alt={`${vehicle.brand} ${vehicle.model}`} 
                 onLoad={(e) => {
                   console.log(`Image loaded successfully for vehicle ${vehicle.id} - ${vehicle.model}`);

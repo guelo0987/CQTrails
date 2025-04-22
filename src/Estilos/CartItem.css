@@ -1,12 +1,18 @@
 .cart-item {
   display: grid;
-  grid-template-columns: 200px 100px 200px 100px 100px 40px;
+  grid-template-columns: 280px 100px 200px 100px 100px 40px;
   align-items: center;
   gap: 20px;
   padding: 15px 20px;
   background: white;
   border-radius: 8px;
   margin-bottom: 12px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.cart-item:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
 }
 
 .cart-item.header {
@@ -28,17 +34,34 @@
   justify-content: flex-start;
 }
 
+.cart-item-image-container {
+  width: 150px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .column-vehicle .cart-item-image {
-  width: 90px;
-  height: 30px;
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   border-radius: 4px;
+  transition: transform 0.3s ease;
+}
+
+.cart-item-image-container:hover .cart-item-image {
+  transform: scale(1.05);
 }
 
 .column-vehicle .cart-item-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .column-price {
@@ -363,17 +386,18 @@
   
   @media (max-width: 1024px) {
     .cart-item {
-      grid-template-columns: 180px 100px 160px 80px 80px 40px;
-      gap: 15px;
+      grid-template-columns: 220px 80px 180px 80px 80px 40px;
+      padding: 12px 15px;
+      gap: 10px;
     }
-
+  
     .header .column:nth-child(1) {
-      padding-left: 45px;
+      padding-left: 0;
     }
-
-    .column-vehicle .cart-item-image {
-      width: 60px;
-      height: 45px;
+  
+    .cart-item-image-container {
+      width: 120px;
+      height: 80px;
     }
   }
   
@@ -381,33 +405,44 @@
     .cart-item.header {
       display: none;
     }
+    
     .cart-item {
       grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      padding: 15px;
       gap: 15px;
     }
-
-    .column-vehicle .cart-item-image {
+    
+    .cart-item-image-container {
       width: 100%;
-      height: 200px;
-      object-fit: contain;
+      height: 150px;
+      margin-bottom: 10px;
     }
-
+    
+    .column-vehicle {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
     .column-vehicle .cart-item-details,
-    .cart-item-price,
+    .column-price,
     .column-dates,
     .column-quantity,
-    .cart-item-subtotal {
-      text-align: center;
+    .column-subtotal,
+    .column-actions {
+      width: 100%;
+      justify-content: flex-start;
+      margin-left: 0;
     }
-
+    
     .date-picker-container {
-      justify-content: center;
+      width: 100%;
     }
-
+    
     .remove-button {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 15px;
+      right: 15px;
     }
   }
   

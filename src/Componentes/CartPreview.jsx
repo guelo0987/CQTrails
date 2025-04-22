@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import "../Estilos/CartPreview.css"
+import getDirectGoogleDriveImageUrl from '../Utils/HelperDriveGoogle.ts'
 
 const CartPreview = ({ items = [], isVisible }) => {
   // Calculate total based on subtotal property
@@ -38,7 +39,7 @@ const CartPreview = ({ items = [], isVisible }) => {
         {items.map((item) => (
           <div key={item.id} className="preview-item">
             <img 
-              src={item.vehiculo?.imagenUrl || 'https://placehold.co/300x200/CCCCCC/666666?text=Sin+Imagen'} 
+              src={getDirectGoogleDriveImageUrl(item.vehiculo?.imagenUrl, 'https://placehold.co/300x200/CCCCCC/666666?text=Sin+Imagen')} 
               alt={item.vehiculo?.modelo || 'Vehículo'} 
               className="preview-item-image" 
             />

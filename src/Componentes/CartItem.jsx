@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker'
 import { BsCalendar } from 'react-icons/bs'
 import "react-datepicker/dist/react-datepicker.css"
 import "../Estilos/CartItem.css"
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
 function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) {
   if (isHeader) {
@@ -27,13 +28,29 @@ function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) 
     onUpdateQuantity(item.id, newQuantity)
   }
 
+  // Process vehicle image to get direct Google Drive URL if needed
+  const processedImage = item.imagen && item.image_url 
+    ? getDirectGoogleDriveImageUrl(item.image_url, item.imagen) 
+    : item.imagen || "https://placehold.co/300x200/CCCCCC/666666?text=No+Image";
+
   // Solo calculamos el subtotal si no es header
   const subtotal = item.precio * item.cantidad
 
   return (
     <div className="cart-item">
       <div className="column column-vehicle">
-        <img src={item.imagen} alt={item.vehiculo} className="cart-item-image" />
+        <div className="cart-item-image-container">
+          <img 
+            src={processedImage} 
+            alt={item.vehiculo} 
+            className="cart-item-image" 
+            onError={(e) => {
+              console.log("Image failed to load:", e.target.src);
+              e.target.onerror = null;
+              e.target.src = "https://placehold.co/300x200/CCCCCC/666666?text=No+Image";
+            }}
+          />
+        </div>
         <div className="cart-item-details">
           <h3 className="cart-item-title">{item.vehiculo}</h3>
           <p className="cart-item-type">{item.tipo}</p>

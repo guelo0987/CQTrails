@@ -7,17 +7,24 @@ import TotalSummary from '../Componentes/TotalSummary'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import PreFacturaPDF from '../Componentes/PreFacturaPDF'
 import { reservationService } from '../Services/ReservationService.ts'
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
-// Importar imágenes de vehículos
+// Importar imágenes de vehículos para usar como fallback
 import furgoneta1 from "../Imagenes/Furgoneta.png"
 import furgoneta2 from "../Imagenes/Camioneta.png"
 import furgoneta3 from "../Imagenes/Minibus.png"
+import defaultVehicleImage from "../Imagenes/Autobus.png"
 
-// Mapeo de tipos de vehículos a imágenes
+// Mapeo de tipos de vehículos a imágenes de fallback
 const vehicleImages = {
   "Sedan": furgoneta1,
   "SUV": furgoneta2,
-  "Minivan": furgoneta3
+  "Minivan": furgoneta3,
+  "Hatchback": furgoneta1,
+  "Truck": furgoneta2,
+  "Camioneta": furgoneta2,
+  "Camion": furgoneta2,
+  "Default": defaultVehicleImage
 }
 
 // Función para formatear fecha y hora
@@ -37,6 +44,23 @@ const formatDateTime = (dateString) => {
   });
   
   return { date: formattedDate, time: formattedTime };
+};
+
+// Función para procesar la imagen del vehículo
+const processVehicleImage = (vehiculo) => {
+  // Si tiene image_url, procesarlo con nuestro helper
+  if (vehiculo.image_url) {
+    const defaultImage = vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default;
+    return getDirectGoogleDriveImageUrl(vehiculo.image_url, defaultImage);
+  }
+  
+  // Si tiene imagen ya procesada, usarla
+  if (vehiculo.imagen && typeof vehiculo.imagen === 'string' && (vehiculo.imagen.startsWith('http') || vehiculo.imagen.startsWith('https'))) {
+    return vehiculo.imagen;
+  }
+  
+  // Usar imagen por defecto según tipo de vehículo
+  return vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default;
 };
 
 export default function DetallesReservacion() {
@@ -145,7 +169,7 @@ export default function DetallesReservacion() {
           // Asignar imágenes a los vehículos
           const vehiculosConImagen = reservacion.vehiculos.map(vehiculo => ({
             ...vehiculo,
-            imagen: vehicleImages[vehiculo.tipoVehiculo] || furgoneta1 // Imagen predeterminada si no hay coincidencia
+            imagen: processVehicleImage(vehiculo)
           }));
           
           setVehiculosReservados(vehiculosConImagen);
@@ -408,7 +432,15 @@ export default function DetallesReservacion() {
                   <div key={vehiculo.idVehiculo} className="vehiculo-card">
                     <div className="vehiculo-info">
                       <div className="vehiculo-imagen">
-                        <img src={vehiculo.imagen} alt={vehiculo.modelo} />
+                        <img 
+                          src={getDirectGoogleDriveImageUrl(vehiculo.image_url, vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default)} 
+                          alt={vehiculo.modelo}
+                          onError={(e) => {
+                            console.log("Image failed to load:", e.target.src);
+                            e.target.onerror = null;
+                            e.target.src = vehicleImages[vehiculo.tipoVehiculo] || vehicleImages.Default;
+                          }}
+                        />
                       </div>
                       <div className="vehiculo-detalles">
                         <h3>{vehiculo.modelo}</h3>

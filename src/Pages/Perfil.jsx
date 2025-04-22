@@ -12,6 +12,7 @@ import { authService } from "../Services/AuthService.ts"
 import { reservationService } from "../Services/ReservationService.ts"
 import { empresaService } from "../Services/EmpresaService.ts"
 import { notificationService } from "../Utils/notificationService.ts"
+import getDirectGoogleDriveImageUrl, { getAllGoogleDriveImages } from "../Utils/HelperDriveGoogle.ts"
 
 // Importar imágenes de vehículos
 import furgoneta1 from "../Imagenes/Furgoneta.png"
@@ -318,47 +319,54 @@ export default function Perfil() {
 
     return (
       <div className="reservations-table">
-        {recentReservations.map((reservacion) => (
-          <div 
-            key={reservacion.id || reservacion.idReservacion} 
-            className="reservacion-item"
-            onClick={() => handleViewReservationDetail(reservacion.id || reservacion.idReservacion)}
-          >
-            <div className="reservacion-info">
-              <div className="vehicle-cell">
-                <div className="vehicle-img-container">
-                  <img 
-                    src={vehicleImages[reservacion.tipoVehiculo] || furgoneta1} 
-                    alt={reservacion.tipoVehiculo || "Vehículo"} 
-                    className="vehicle-thumbnail" 
-                  />
-                </div>
-                <div className="vehicleperfil-info">
-                  <div className="vehicle-name">{reservacion.vehiculo || reservacion.nombreVehiculo || "Vehículo"}</div>
-                  <div className="vehicle-type">{reservacion.tipoVehiculo || "Tipo de vehículo"}</div>
-                </div>
-              </div>
-              
-              <div className="reservacion-fecha">
-                {formatDate(reservacion.fecha || reservacion.fechaReservacion)}
-              </div>
-              
-              <div className="reservacion-detalles">
-                <div className={`status-badge ${reservacion.estado?.toLowerCase() || 'pendiente'}`}>
-                  {reservacion.estado || "Pendiente"}
+        {recentReservations.map((reservacion) => {
+          // Procesar imagen para obtener URL directa
+          const vehicleImg = reservacion.image_url 
+            ? getDirectGoogleDriveImageUrl(reservacion.image_url, vehicleImages[reservacion.tipoVehiculo] || furgoneta1) 
+            : vehicleImages[reservacion.tipoVehiculo] || furgoneta1;
+            
+          return (
+            <div 
+              key={reservacion.id || reservacion.idReservacion} 
+              className="reservacion-item"
+              onClick={() => handleViewReservationDetail(reservacion.id || reservacion.idReservacion)}
+            >
+              <div className="reservacion-info">
+                <div className="vehicle-cell">
+                  <div className="vehicle-img-container">
+                    <img 
+                      src={vehicleImg} 
+                      alt={reservacion.tipoVehiculo || "Vehículo"} 
+                      className="vehicle-thumbnail" 
+                    />
+                  </div>
+                  <div className="vehicleperfil-info">
+                    <div className="vehicle-name">{reservacion.vehiculo || reservacion.nombreVehiculo || "Vehículo"}</div>
+                    <div className="vehicle-type">{reservacion.tipoVehiculo || "Tipo de vehículo"}</div>
+                  </div>
                 </div>
                 
-                <div className="reservacion-total">
-                  ${reservacion.total || reservacion.montoTotal || "0.00"}
+                <div className="reservacion-fecha">
+                  {formatDate(reservacion.fecha || reservacion.fechaReservacion)}
                 </div>
                 
-                <div className="reservacion-arrow">
-                  <ChevronRight size={20} color="#09A603" />
+                <div className="reservacion-detalles">
+                  <div className={`status-badge ${reservacion.estado?.toLowerCase() || 'pendiente'}`}>
+                    {reservacion.estado || "Pendiente"}
+                  </div>
+                  
+                  <div className="reservacion-total">
+                    ${reservacion.total || reservacion.montoTotal || "0.00"}
+                  </div>
+                  
+                  <div className="reservacion-arrow">
+                    <ChevronRight size={20} color="#09A603" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };

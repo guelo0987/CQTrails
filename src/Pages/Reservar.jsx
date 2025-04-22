@@ -324,6 +324,8 @@ function Reservar() {
       model: vehicle.modelo || "Sin modelo",
       year: vehicle.ano ? vehicle.ano.toString() : "N/A",
       image: imageUrl,
+      image_url: vehicle.image_url, // Include the original image_url JSON
+      rawData: vehicle, // Include the original vehicle data
       seats: vehicle.capacidad || 0,
       transmision: vehicle.transmision || "Manual",
       combustible: vehicle.combustible || "Gasolina",
@@ -392,7 +394,7 @@ function Reservar() {
           <div key={vehicle.idVehiculo} className="vehicle-card">
             <div className="vehicle-image-container">
               <img
-                src={vehicle.imagenUrl || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
+                src={getDirectGoogleDriveImageUrl(vehicle.imagenUrl, 'https://via.placeholder.com/300x200?text=Sin+Imagen')}
                 alt={`${vehicle.marca} ${vehicle.modelo}`}
                 className="vehicle-image"
               />

@@ -13,6 +13,7 @@ import { useCart } from "../Context/CartContext"
 import "../Estilos/MiCarrito.css"
 import Swal from 'sweetalert2'
 import { reservationService } from '../Services/ReservationService.ts'
+import getDirectGoogleDriveImageUrl from "../Utils/HelperDriveGoogle.ts"
 
 export default function MiCarrito() {
   const navigate = useNavigate()
@@ -284,7 +285,7 @@ export default function MiCarrito() {
     id: item.id,
     vehiculo: item.vehiculo?.modelo || 'Vehículo no disponible',
     tipo: item.vehiculo?.tipoVehiculo || 'Tipo no disponible',
-    imagen: item.vehiculo?.image_url || 'https://placehold.co/300x200/CCCCCC/666666?text=No+Image',
+    imagen: getDirectGoogleDriveImageUrl(item.vehiculo?.image_url, 'https://placehold.co/300x200/CCCCCC/666666?text=No+Image'),
     fechaInicio: new Date(item.fechaInicio),
     fechaFin: new Date(item.fechaFin),
     cantidad: item.cantidad,

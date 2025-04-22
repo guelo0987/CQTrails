@@ -11,10 +11,12 @@ import 'sweetalert2/dist/sweetalert2.css'
 import CartService from "../Services/CartService.ts"
 import { authService } from "../Services/AuthService.ts"
 import { useCart } from "../Context/CartContext"
+import VehiculeService from "../Services/VehiculeService.ts"
 
 export default function AgregarReserva() {
   const { vehicleId } = useParams()
   const [selectedVehicle, setSelectedVehicle] = useState(null)
+  const [vehicleDetails, setVehicleDetails] = useState(null)
   const [loading, setLoading] = useState(false)
   const [userData, setUserData] = useState(null)
   const [attemptedReload, setAttemptedReload] = useState(false)
@@ -23,23 +25,50 @@ export default function AgregarReserva() {
 
   // Load vehicle data
   useEffect(() => {
-    const vehicleData = JSON.parse(localStorage.getItem('selectedVehicle'))
-    if (vehicleData) {
-      // Mantener la estructura original del vehículo y añadir propiedades adicionales
-      setSelectedVehicle({
-        ...vehicleData,
-        name: `${vehicleData.brand} ${vehicleData.model}`,
-        description: `${vehicleData.brand} ${vehicleData.model} ${vehicleData.year} - ${vehicleData.type.charAt(0).toUpperCase() + vehicleData.type.slice(1)}`,
-        specs: [
-          { label: "Tipo Vehículo", value: vehicleData.type.charAt(0).toUpperCase() + vehicleData.type.slice(1) },
-          { label: "Capacidad", value: `${vehicleData.seats} Personas` },
-          { label: "Transmisión", value: vehicleData.transmision },
-          { label: "Año", value: vehicleData.year },
-          { label: "Disponibilidad", value: "20" },
-        ]
-      })
-    }
-  }, [vehicleId])
+    const loadVehicleData = async () => {
+      try {
+        // Get the vehicle data from localStorage
+        const storedVehicleData = JSON.parse(localStorage.getItem('selectedVehicle'));
+        if (!storedVehicleData) return;
+        
+        console.log("Loaded vehicle data from localStorage:", storedVehicleData);
+        
+        // Try to fetch detailed vehicle data from API to get all images
+        try {
+          if (storedVehicleData.id) {
+            const apiVehicleData = await VehiculeService.getVehiculeById(storedVehicleData.id);
+            console.log("Fetched detailed vehicle data from API:", apiVehicleData);
+            
+            // Store the raw API data
+            setVehicleDetails(apiVehicleData);
+          }
+        } catch (apiError) {
+          console.error("Error fetching detailed vehicle data:", apiError);
+          // Continue with localStorage data if API fails
+        }
+        
+        // Create enhanced vehicle object with the data we have
+        setSelectedVehicle({
+          ...storedVehicleData,
+          name: `${storedVehicleData.brand} ${storedVehicleData.model}`,
+          description: `${storedVehicleData.brand} ${storedVehicleData.model} ${storedVehicleData.year} - ${storedVehicleData.type.charAt(0).toUpperCase() + storedVehicleData.type.slice(1)}`,
+          // Include raw API data if available (for getting all images)
+          rawData: vehicleDetails,
+          specs: [
+            { label: "Tipo Vehículo", value: storedVehicleData.type.charAt(0).toUpperCase() + storedVehicleData.type.slice(1) },
+            { label: "Capacidad", value: `${storedVehicleData.seats} Personas` },
+            { label: "Transmisión", value: storedVehicleData.transmision },
+            { label: "Año", value: storedVehicleData.year },
+            { label: "Disponibilidad", value: "20" },
+          ]
+        });
+      } catch (error) {
+        console.error("Error loading vehicle data:", error);
+      }
+    };
+    
+    loadVehicleData();
+  }, [vehicleId, vehicleDetails]);
 
   // Check authentication and try to recover if needed
   useEffect(() => {

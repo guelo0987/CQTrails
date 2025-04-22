@@ -1,52 +1,62 @@
 .vehicle-gallery {
     padding: 0;
+    width: 100%;
   }
   
   .gallery-container {
     display: flex;
+    flex-direction: column;
     width: 100%;
   }
   
   .main-image-container {
     flex: 1;
-    height: 300px;
+    height: 350px;
     background-color: #027313;
     background-image: url("../Imagenes/pattern.svg");
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border-radius: 8px 0 0 0;
+    border-radius: 8px 8px 0 0;
+    position: relative;
   }
   
   .main-image {
-    max-width: 80%;
-    max-height: 80%;
+    max-width: 90%;
+    max-height: 85%;
     object-fit: contain;
+    display: block;
+    margin: 0 auto;
   }
   
   .thumbnails-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
     padding: 10px;
     background-color: white;
-    width: 150px; /* Increased width for thumbnails */
+    justify-content: center;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid #e0e0e0;
+    border-top: none;
   }
   
   .thumbnail {
-    width: 130px; /* Increased width */
-    height: 90px; /* Increased height */
+    width: 110px;
+    height: 80px;
     border: 2px solid transparent;
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
     opacity: 0.7;
     transition: all 0.2s ease;
+    background-color: #f5f5f5;
   }
   
   .thumbnail:hover {
     opacity: 0.9;
+    transform: translateY(-2px);
   }
   
   .thumbnail.active {
@@ -62,19 +72,12 @@
   }
   
   @media (max-width: 768px) {
-    .gallery-container {
-      flex-direction: column;
-    }
-  
     .main-image-container {
-      height: 220px;
-      border-radius: 8px 8px 0 0;
+      height: 250px;
     }
   
     .thumbnails-container {
-      flex-direction: row;
-      justify-content: center;
-      width: 100%;
+      flex-wrap: wrap;
     }
   
     .thumbnail {

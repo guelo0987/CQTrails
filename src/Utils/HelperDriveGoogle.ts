@@ -76,4 +76,64 @@ const getDirectGoogleDriveImageUrl = (imageUrlJson: string | null | undefined, d
   }
 };
 
+// Helper to get all images from a JSON object containing multiple Google Drive links
+const getAllGoogleDriveImages = (imageUrlJson: string | null | undefined, defaultImage: string): string[] => {
+  if (!imageUrlJson) {
+    return [defaultImage];
+  }
+
+  try {
+    let parsedImages: Record<string, string> = {};
+    
+    // Parse the JSON if it's a string
+    if (typeof imageUrlJson === 'string') {
+      try {
+        // Check if it's a JSON string with multiple images
+        if (imageUrlJson.includes('{"image1"')) {
+          parsedImages = JSON.parse(imageUrlJson);
+        } else {
+          // If it's just a single URL, return it processed
+          return [getDirectGoogleDriveImageUrl(imageUrlJson, defaultImage)];
+        }
+      } catch (parseError) {
+        console.error("Failed to parse JSON string:", imageUrlJson);
+        return [defaultImage];
+      }
+    } else if (typeof imageUrlJson === 'object' && imageUrlJson !== null) {
+      // If it's already an object
+      parsedImages = imageUrlJson as Record<string, string>;
+    } else {
+      return [defaultImage];
+    }
+
+    // Process all image URLs in the object
+    const imageUrls: string[] = [];
+    
+    // Get all keys that start with "image" and process them
+    Object.keys(parsedImages)
+      .filter(key => key.startsWith('image'))
+      .sort() // Sort to ensure image1 comes first, then image2, etc.
+      .forEach(key => {
+        const url = parsedImages[key];
+        if (url && typeof url === 'string') {
+          // Process each URL to get direct link
+          const match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+          if (match && match[1]) {
+            const fileId = match[1];
+            imageUrls.push(`https://lh3.googleusercontent.com/d/${fileId}`);
+          } else if (url.startsWith('http') || url.startsWith('https')) {
+            imageUrls.push(url);
+          }
+        }
+      });
+
+    // If no valid images were found, return default
+    return imageUrls.length > 0 ? imageUrls : [defaultImage];
+  } catch (error) {
+    console.error(`Error processing multiple image URLs: ${imageUrlJson}`, error);
+    return [defaultImage];
+  }
+};
+
 export default getDirectGoogleDriveImageUrl;
+export { getAllGoogleDriveImages };

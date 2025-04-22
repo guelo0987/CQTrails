@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import "../Estilos/SearchBar.css"
 import VehiculeService from '../Services/VehiculeService.ts'
 
@@ -20,19 +20,27 @@ const SearchBar = ({
     years: false,
     allModels: false
   })
+  
+  // Use refs to track last successful data to avoid UI flickering
+  const lastSuccessfulYears = useRef([])
+  const lastSuccessfulModels = useRef([])
+  const vehicleService = useRef(VehiculeService)
 
   // Load all models on mount for better search functionality
   useEffect(() => {
     const loadAllModels = async () => {
       try {
         setLoading(prev => ({ ...prev, allModels: true }))
-        const vehiclesData = await VehiculeService.getAllVehicules()
+        const vehiclesData = await vehicleService.current.getAllVehicules()
         
         // Extract unique models
         const uniqueModels = Array.from(new Set(vehiclesData.map(v => v.modelo)))
+          .filter(model => model && typeof model === 'string' && model.trim() !== '')
           .sort((a, b) => a.localeCompare(b))
         
         setAllModels(uniqueModels)
+        // Also update lastSuccessfulModels for fallback
+        lastSuccessfulModels.current = uniqueModels
       } catch (error) {
         console.error('Error loading all models:', error)
       } finally {
@@ -80,56 +88,148 @@ const SearchBar = ({
   useEffect(() => {
     const fetchModels = async () => {
       try {
+        // Skip if already loading
+        if (loading.models) return
+        
         setLoading(prev => ({ ...prev, models: true }))
         
         if (!filters.type || filters.type === '') {
           // If no type is selected, show all models
           setModels(allModels)
+          lastSuccessfulModels.current = allModels
         } else {
           // Otherwise filter by brand
-          const modelsList = await VehiculeService.getModelsByBrand(filters.type)
-          setModels(modelsList.length > 0 ? modelsList : allModels)
+          const modelsList = await vehicleService.current.getModelsByBrand(filters.type)
+          if (modelsList && Array.isArray(modelsList) && modelsList.length > 0) {
+            setModels(modelsList)
+            lastSuccessfulModels.current = modelsList
+            
+            // If we have a model in the filters and it's in the model list, preload its years
+            if (filters.model && modelsList.includes(filters.model)) {
+              // Preload years for currently selected model
+              try {
+                setLoading(prev => ({ ...prev, years: true }))
+                const yearsList = await vehicleService.current.getYearsByModelAndBrand(
+                  filters.model,
+                  filters.type
+                )
+                
+                if (yearsList && Array.isArray(yearsList) && yearsList.length > 0) {
+                  setYears(yearsList)
+                  lastSuccessfulYears.current = yearsList
+                }
+              } catch (yearsError) {
+                console.error('Error pre-loading years:', yearsError)
+              } finally {
+                setLoading(prev => ({ ...prev, years: false }))
+              }
+            }
+          } else {
+            // Use allModels as fallback if no models returned
+            setModels(allModels)
+          }
         }
       } catch (error) {
         console.error('Error fetching models:', error)
         // Use allModels as fallback if API fails
-        setModels(allModels)
+        setModels(allModels.length > 0 ? allModels : lastSuccessfulModels.current)
       } finally {
         setLoading(prev => ({ ...prev, models: false }))
       }
     }
 
     fetchModels()
-  }, [filters.type, allModels])
+  }, [filters.type, allModels, filters.model])
 
-  // Fetch years when type and model change
+  // Fetch years when type and model change with debouncing to prevent race conditions
+  const yearsFetchTimeout = useRef(null)
+  const lastFetchedModelYears = useRef('') // Track the last model we fetched years for
+  
   useEffect(() => {
     const fetchYears = async () => {
+      // Clear any pending timeout
+      if (yearsFetchTimeout.current) {
+        clearTimeout(yearsFetchTimeout.current)
+      }
+      
       if (!filters.model) {
         setYears([])
         return
       }
-
-      try {
-        setLoading(prev => ({ ...prev, years: true }))
-        // Use the type (brand) if specified, otherwise pass empty string
-        const yearsList = await VehiculeService.getYearsByModelAndBrand(
-          filters.model, 
-          filters.type || ''
-        )
-        setYears(yearsList)
-      } catch (error) {
-        console.error('Error fetching years:', error)
-        // Set some default years if there's an error
-        const currentYear = new Date().getFullYear()
-        setYears([currentYear, currentYear - 1, currentYear - 2])
-      } finally {
-        setLoading(prev => ({ ...prev, years: false }))
+      
+      // Skip if we just fetched years for this model
+      // This prevents redundant fetches and endless loading loops
+      if (lastFetchedModelYears.current === filters.model) {
+        return
       }
+
+      // Add 200ms delay before fetching to prevent rapid requests
+      yearsFetchTimeout.current = setTimeout(async () => {
+        try {
+          // Skip if already loading
+          if (loading.years) return
+          
+          // Mark this model as being fetched
+          lastFetchedModelYears.current = filters.model
+          
+          setLoading(prev => ({ ...prev, years: true }))
+          // Use the type (brand) if specified, otherwise pass empty string
+          const yearsList = await vehicleService.current.getYearsByModelAndBrand(
+            filters.model, 
+            filters.type || ''
+          )
+          
+          if (yearsList && Array.isArray(yearsList) && yearsList.length > 0) {
+            setYears(yearsList)
+            lastSuccessfulYears.current = yearsList
+            
+            // If a year is selected but not in the list, clear it
+            if (filters.year && !yearsList.map(y => y.toString()).includes(filters.year)) {
+              onFilterChange('year', '')
+            }
+          } else {
+            // Try to use cached years before falling back to defaults
+            if (lastSuccessfulYears.current.length > 0) {
+              setYears(lastSuccessfulYears.current)
+            } else {
+              // Use default years if no years returned
+              const currentYear = new Date().getFullYear()
+              const defaultYears = [currentYear, currentYear - 1, currentYear - 2]
+              setYears(defaultYears)
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching years:', error)
+          // Check if we have previous successful years to use
+          if (lastSuccessfulYears.current.length > 0) {
+            setYears(lastSuccessfulYears.current)
+          } else {
+            // Set some default years if there's an error
+            const currentYear = new Date().getFullYear()
+            setYears([currentYear, currentYear - 1, currentYear - 2])
+          }
+        } finally {
+          setLoading(prev => ({ ...prev, years: false }))
+        }
+      }, 200)
     }
 
     fetchYears()
-  }, [filters.type, filters.model])
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (yearsFetchTimeout.current) {
+        clearTimeout(yearsFetchTimeout.current)
+      }
+    }
+  }, [filters.type, filters.model, loading.years, filters.year, onFilterChange])
+
+  // Reset the last fetched model when the model or type filter is cleared
+  useEffect(() => {
+    if (!filters.model || !filters.type) {
+      lastFetchedModelYears.current = ''
+    }
+  }, [filters.model, filters.type])
 
   // Debounce search to avoid too many updates
   const debounce = (func, delay) => {

@@ -20,19 +20,28 @@ const HeroSection = ({ vehicles = [] }) => {
   const [suggestions, setSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef(null)
+  
+  // References to prevent multiple fetches and store last successful data
+  const vehicleService = useRef(VehiculeService)
+  const lastSuccessfulYears = useRef([])
+  const lastSuccessfulModels = useRef([])
+  const yearsFetchTimeout = useRef(null)
+  const modelsFetchTimeout = useRef(null)
 
   // Load all vehicles on component mount to have a complete dataset
   useEffect(() => {
     const loadAllVehicles = async () => {
       try {
         setIsLoading(true)
-        const vehiclesData = await VehiculeService.getAllVehicules()
+        const vehiclesData = await vehicleService.current.getAllVehicules()
         
         // Extract unique models from all vehicles
         const uniqueModels = Array.from(new Set(vehiclesData.map(v => v.modelo)))
+          .filter(model => model && typeof model === 'string' && model.trim() !== '')
           .sort((a, b) => a.localeCompare(b))
         
         setAllModels(uniqueModels)
+        lastSuccessfulModels.current = uniqueModels
       } catch (error) {
         console.error('Error loading all vehicles:', error)
       } finally {
@@ -48,10 +57,14 @@ const HeroSection = ({ vehicles = [] }) => {
     const loadBrands = async () => {
       try {
         setIsLoading(true)
-        const brandsData = await VehiculeService.getAllBrands()
-        setBrands(brandsData)
-        if (brandsData.length > 0) {
-          setSelectedBrand(brandsData[0])
+        const brandsData = await vehicleService.current.getAllBrands()
+        
+        // Filter out empty or invalid brands
+        const validBrands = brandsData.filter(brand => brand && typeof brand === 'string' && brand.trim() !== '')
+        
+        setBrands(validBrands)
+        if (validBrands.length > 0) {
+          setSelectedBrand(validBrands[0])
         }
       } catch (error) {
         console.error('Error loading brands:', error)
@@ -66,59 +79,188 @@ const HeroSection = ({ vehicles = [] }) => {
   // Load models when brand changes or show all models if no brand is selected
   useEffect(() => {
     const loadModels = async () => {
-      try {
-        setIsLoading(true)
-        if (!selectedBrand || selectedBrand === '') {
-          // If no brand selected, use all models
-          setModels(allModels)
-        } else {
-          // Otherwise filter by brand
-          const modelsData = await VehiculeService.getModelsByBrand(selectedBrand)
-          setModels(modelsData)
-        }
-      } catch (error) {
-        console.error('Error loading models:', error)
-        // Use allModels as fallback if API fails
-        setModels(allModels)
-      } finally {
-        setIsLoading(false)
+      // Clear any pending timeout
+      if (modelsFetchTimeout.current) {
+        clearTimeout(modelsFetchTimeout.current)
       }
+      
+      // Add a small delay to prevent rapid requests
+      modelsFetchTimeout.current = setTimeout(async () => {
+        // To prevent UI freezing, only show loading if we don't have models yet
+        const shouldShowLoading = models.length === 0
+        
+        if (shouldShowLoading) {
+          setIsLoading(true)
+        }
+        
+        try {
+          if (!selectedBrand || selectedBrand === '') {
+            // If no brand selected, use all models
+            setModels(allModels)
+            lastSuccessfulModels.current = allModels
+          } else {
+            // Otherwise filter by brand
+            const modelsData = await vehicleService.current.getModelsByBrand(selectedBrand)
+            
+            // Validate the returned data
+            if (modelsData && Array.isArray(modelsData) && modelsData.length > 0) {
+              setModels(modelsData)
+              lastSuccessfulModels.current = modelsData
+              
+              // If we have a valid model, pre-load the years right away
+              if (selectedModel && modelsData.includes(selectedModel)) {
+                // Preload years for current model
+                try {
+                  const yearsData = await vehicleService.current.getYearsByModelAndBrand(
+                    selectedModel,
+                    selectedBrand
+                  )
+                  
+                  if (yearsData && Array.isArray(yearsData) && yearsData.length > 0) {
+                    setYears(yearsData)
+                    lastSuccessfulYears.current = yearsData
+                    
+                    // Set the first year as selected if no year is currently selected
+                    if (!selectedYear) {
+                      setSelectedYear(yearsData[0].toString())
+                    }
+                  }
+                } catch (yearsError) {
+                  console.error('Error pre-loading years:', yearsError)
+                }
+              } 
+              // If no valid model is selected, select the first one and load its years
+              else if (modelsData.length > 0 && (!selectedModel || !modelsData.includes(selectedModel))) {
+                const newModel = modelsData[0]
+                setSelectedModel(newModel)
+                
+                // Pre-load years for the selected model
+                try {
+                  const yearsData = await vehicleService.current.getYearsByModelAndBrand(
+                    newModel, 
+                    selectedBrand
+                  )
+                  
+                  if (yearsData && Array.isArray(yearsData) && yearsData.length > 0) {
+                    setYears(yearsData)
+                    lastSuccessfulYears.current = yearsData
+                    setSelectedYear(yearsData[0].toString())
+                  }
+                } catch (yearsError) {
+                  console.error('Error pre-loading years for new model:', yearsError)
+                }
+              }
+            } else {
+              // Use allModels as fallback if API returns empty data
+              setModels(allModels)
+            }
+          }
+        } catch (error) {
+          console.error('Error loading models:', error)
+          // Use allModels as fallback if API fails
+          setModels(allModels.length > 0 ? allModels : lastSuccessfulModels.current)
+        } finally {
+          if (shouldShowLoading) {
+            setIsLoading(false)
+          }
+        }
+      }, 100)
     }
     
     loadModels()
-  }, [selectedBrand, allModels])
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (modelsFetchTimeout.current) {
+        clearTimeout(modelsFetchTimeout.current)
+      }
+    }
+  }, [selectedBrand, allModels, selectedModel, selectedYear])
 
   // Load years when model changes
   useEffect(() => {
     const loadYears = async () => {
       if (!selectedModel) return
       
-      try {
-        setIsLoading(true)
-        // Try to get years for the model, using the brand if available
-        const yearsData = await VehiculeService.getYearsByModelAndBrand(
-          selectedModel, 
-          selectedBrand || '' // Pass empty string if no brand selected
-        )
-        setYears(yearsData)
-        if (yearsData.length > 0) {
-          setSelectedYear(yearsData[0])
-        } else {
-          setSelectedYear('')
-        }
-      } catch (error) {
-        console.error('Error loading years:', error)
-        // Set some default years if there's an error
-        const currentYear = new Date().getFullYear()
-        setYears([currentYear, currentYear - 1, currentYear - 2])
-        setSelectedYear(currentYear.toString())
-      } finally {
-        setIsLoading(false)
+      // Clear any pending timeout
+      if (yearsFetchTimeout.current) {
+        clearTimeout(yearsFetchTimeout.current)
       }
+      
+      // Add a small delay to prevent rapid requests
+      yearsFetchTimeout.current = setTimeout(async () => {
+        // To prevent UI freezing, only show loading if we don't have previous years
+        const shouldShowLoading = years.length === 0
+        
+        if (shouldShowLoading) {
+          setIsLoading(true)
+        }
+        
+        try {
+          // Try to get years for the model, using the brand if available
+          const yearsData = await vehicleService.current.getYearsByModelAndBrand(
+            selectedModel, 
+            selectedBrand || '' // Pass empty string if no brand selected
+          )
+          
+          // Validate the returned data
+          if (yearsData && Array.isArray(yearsData) && yearsData.length > 0) {
+            setYears(yearsData)
+            lastSuccessfulYears.current = yearsData
+            
+            // Set the first year as selected if none is already selected
+            if (!selectedYear || !yearsData.includes(parseInt(selectedYear))) {
+              setSelectedYear(yearsData[0].toString())
+            }
+          } else {
+            // Generate fallback years if no valid data
+            const currentYear = new Date().getFullYear()
+            const fallbackYears = [currentYear, currentYear - 1, currentYear - 2]
+            
+            // Check if we have previous successful years to use
+            if (lastSuccessfulYears.current.length > 0) {
+              setYears(lastSuccessfulYears.current)
+              if (!selectedYear) {
+                setSelectedYear(lastSuccessfulYears.current[0].toString())
+              }
+            } else {
+              setYears(fallbackYears)
+              setSelectedYear(currentYear.toString())
+            }
+          }
+        } catch (error) {
+          console.error('Error loading years:', error)
+          
+          // Check if we have previous successful years to use
+          if (lastSuccessfulYears.current.length > 0) {
+            setYears(lastSuccessfulYears.current)
+            if (!selectedYear) {
+              setSelectedYear(lastSuccessfulYears.current[0].toString())
+            }
+          } else {
+            // Set some default years if there's an error
+            const currentYear = new Date().getFullYear()
+            const fallbackYears = [currentYear, currentYear - 1, currentYear - 2]
+            setYears(fallbackYears)
+            setSelectedYear(currentYear.toString())
+          }
+        } finally {
+          if (shouldShowLoading) {
+            setIsLoading(false)
+          }
+        }
+      }, 200)
     }
     
     loadYears()
-  }, [selectedBrand, selectedModel])
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (yearsFetchTimeout.current) {
+        clearTimeout(yearsFetchTimeout.current)
+      }
+    }
+  }, [selectedBrand, selectedModel, selectedYear, years.length])
 
   // Handle search input changes and generate suggestions from all available data
   const handleSearchChange = (e) => {
@@ -166,7 +308,7 @@ const HeroSection = ({ vehicles = [] }) => {
         setSelectedModel(suggestion.value)
         
         // Find the brand for this model
-        const brandsForModel = await VehiculeService.getBrandsForModel(suggestion.value)
+        const brandsForModel = await vehicleService.current.getBrandsForModel(suggestion.value)
         if (brandsForModel && brandsForModel.length > 0) {
           setSelectedBrand(brandsForModel[0])
         }

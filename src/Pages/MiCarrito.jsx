@@ -219,7 +219,7 @@ export default function MiCarrito() {
         confirmButtonText: 'Ver mis reservaciones'
       }).then((result) => {
         if (result.isConfirmed) {
-          navigate('/mis-reservaciones')
+          navigate('/historial')
         }
       })
     } catch (error) {

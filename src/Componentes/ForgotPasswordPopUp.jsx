@@ -3,11 +3,11 @@ import { XIcon } from "lucide-react";
 import '../Estilos/auth.css';
 import logo from "../Imagenes/Logo.svg";
 import { authService } from "../Services/AuthService.ts";
+import Swal from 'sweetalert2';
 
 function ForgotPasswordPopUp({ isOpen, onClose }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -27,7 +27,6 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
   const handleChange = (e) => {
     setEmail(e.target.value);
     setError("");
-    setMessage("");
   };
 
   const handleSubmit = async (e) => {
@@ -37,14 +36,30 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
       setIsLoading(true);
       
       try {
-        await authService.forgotPassword(email);
-        setMessage("Se ha enviado un correo para restablecer tu contraseña");
-        setEmail("");
+        const response = await authService.forgotPassword(email);
+        
+        if (response.Success) {
+          // Clear the form and close it
+          setEmail("");
+          
+          // Show success message with Swal
+          Swal.fire({
+            title: 'Correo enviado',
+            text: response.Message || 'Si el correo existe en nuestro sistema, recibirás instrucciones para recuperar tu contraseña',
+            icon: 'success',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#09A603'
+          }).then(() => {
+            onClose(); // Close the popup after showing success message
+          });
+        } else {
+          setError(response.Message || "Ocurrió un error al procesar tu solicitud.");
+        }
       } catch (error) {
         console.error("Error al solicitar restablecimiento de contraseña:", error);
         
-        if (error.response && error.response.data && error.response.data.message) {
-          setError(error.response.data.message);
+        if (error.response && error.response.data && error.response.data.Message) {
+          setError(error.response.data.Message);
         } else {
           setError("Error al enviar el correo. Por favor, intenta de nuevo.");
         }
@@ -82,12 +97,6 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
                   </div>
                 )}
                 
-                {message && (
-                  <div className="success-banner">
-                    {message}
-                  </div>
-                )}
-                
                 <div className="form-group">
                   <label className="form-label">
                     Correo Electrónico
@@ -107,7 +116,7 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
                   className="login-button"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Enviando..." : "Siguiente"}
+                  {isLoading ? "Enviando..." : "Recuperar contraseña"}
                 </button>
               </form>
             </div>

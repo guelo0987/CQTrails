@@ -55,12 +55,18 @@ class CartService {
    */
   async getUserCartItems(userId: number) {
     try {
-      const response = await axios.get(`${this.baseUrl}${endpoints.carrito.userItems(userId)}`);
+      const url = `${this.baseUrl}${endpoints.carrito.userItems(userId)}`;
+      console.log('Fetching cart items from URL:', url);
+      
+      const response = await axios.get(url);
       if (response.data.notFound) {
         return [];
       }
       return response.data;
     } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log('Cart items not found (404):', `${this.baseUrl}${endpoints.carrito.userItems(userId)}`);
+      }
       return [];
     }
   }

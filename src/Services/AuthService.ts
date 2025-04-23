@@ -115,16 +115,10 @@ class AuthService {
      */
     async forgotPassword(email: string) {
         try {
-            // Return a mock successful response
-            return {
-                success: true,
-                message: 'Correo de recuperación enviado'
-            };
-            
-            /* Uncomment this when the API is ready
-            const response = await axios.post(`${this.baseURL}api/Auth/forgotPassword`, { email });
+            const response = await axios.post(`${this.baseURL}${endpoints.userRecovery.recover}`, { 
+                Email: email 
+            });
             return response.data;
-            */
         } catch (error) {
             console.error('Error en solicitud de restablecimiento de contraseña:', error);
             throw error;
@@ -133,24 +127,24 @@ class AuthService {
 
     /**
      * Reset password with token
-     * @param token Reset token
      * @param email User email
      * @param oldPassword Old password
      * @param newPassword New password
      * @returns Promise with password reset response
      */
-    async resetPassword(token: string, email:string,oldPassword:string,newPassword: string) {
+    async resetPassword(email: string, oldPassword: string, newPassword: string) {
         try {
-            
-             
-            const response = await axios.post(`${this.baseURL}${endpoints.userRecovery.resetPassword}`, {
-                token,
-                email,
-                oldPassword,
-                newPassword
+            const response = await axios.post(`${this.baseURL}${endpoints.userRecovery.changePassword}`, {
+                Email: email,
+                OldPassword: oldPassword,
+                NewPassword: newPassword
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${this.getToken()}`,
+                    'Content-Type': 'application/json'
+                }
             });
             return response.data;
-            
         } catch (error) {
             console.error('Error en restablecimiento de contraseña:', error);
             throw error;

@@ -8,8 +8,8 @@ export const endpoints = {
     },
 
     userRecovery: {
-        sendRecoveryEmail: 'api/UserRecovery/send-recovery-email',
-        resetPassword: 'api/UserRecovery/change-password'
+        recover: 'api/UserRecovery/recover',
+        changePassword: 'api/UserRecovery/change-password'
     },
 
     Empresa: {

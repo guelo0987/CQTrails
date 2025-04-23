@@ -9,6 +9,7 @@ import LoginPopUp from "../Componentes/LoginPopUp"
 import { authService } from "../Services/AuthService.ts"
 import axios from 'axios'
 import { API_BASE_URL, endpoints } from '../API/Endpoints.ts'
+import { notificationService } from "../Utils/notificationService.ts"
 
 export default function CambiarContrasena() {
   const navigate = useNavigate()
@@ -155,60 +156,66 @@ export default function CambiarContrasena() {
         throw new Error("No hay sesión activa")
       }
       
-      // Usar el endpoint correcto de userRecovery.resetPassword desde endpoints.ts
-      // y enviar los datos en el formato correcto que espera la API
-      const result = await axios.post(
-        `${API_BASE_URL}${endpoints.userRecovery.resetPassword}`,
-        {
-          email: currentUser.email,
-          oldPassword: formData.currentPassword,
-          newPassword: formData.newPassword
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${authService.getToken()}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      // Usar el authService para cambiar la contraseña
+      const result = await authService.resetPassword(
+        currentUser.email,
+        formData.currentPassword,
+        formData.newPassword
       );
       
-      // Si llegamos aquí, la operación fue exitosa
-      setSuccessMessage("Tu contraseña ha sido actualizada exitosamente")
-      
-      // Reiniciar el formulario
-      setFormData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      })
-      
-      return true
+      // Check result.Success from RecoveryResponseDTO
+      if (result && (result.Success === true || result.success === true)) {
+        // Si llegamos aquí, la operación fue exitosa
+        const successMsg = result.Message || result.message || "Tu contraseña ha sido actualizada exitosamente";
+        setSuccessMessage(successMsg);
+        
+        // Mostrar notificación de éxito usando el servicio de notificaciones
+        notificationService.showSuccess(successMsg);
+        
+        // Reiniciar el formulario
+        setFormData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        
+        return true;
+      } else {
+        // Si el resultado no tiene Success=true, mostrar el mensaje de error
+        const errorMsg = (result && (result.Message || result.message)) || "No se pudo actualizar la contraseña";
+        setErrorMessage(errorMsg);
+        notificationService.showError(errorMsg);
+        return false;
+      }
     } catch (error) {
-      console.error("Error al cambiar la contraseña:", error)
+      console.error("Error al cambiar la contraseña:", error);
       
       // Manejar diferentes tipos de errores
+      let errorMsg = "Error al cambiar la contraseña. Inténtalo de nuevo.";
+      
       if (error.response) {
         if (error.response.status === 401) {
-          setErrorMessage("No autorizado. Tu sesión puede haber expirado. Por favor, inicia sesión nuevamente.")
-          // Opcional: redirigir al login después de un tiempo
-          setTimeout(() => {
-            authService.handleLogout();
-            navigate('/login');
-          }, 3000);
-        } else if (error.response.data && error.response.data.message) {
-          setErrorMessage(error.response.data.message)
+          errorMsg = "Contraseña actual incorrecta. Por favor, verifica e intenta nuevamente.";
+        } else if (error.response.data) {
+          if (error.response.data.Message) {
+            errorMsg = error.response.data.Message;
+          } else if (error.response.data.message) {
+            errorMsg = error.response.data.message;
+          } else if (typeof error.response.data === 'string') {
+            errorMsg = error.response.data;
+          }
         } else {
-          setErrorMessage(`Error ${error.response.status}: ${error.response.statusText}`)
+          errorMsg = `Error ${error.response.status}: ${error.response.statusText}`;
         }
       } else if (error.message) {
-        setErrorMessage(error.message)
-      } else {
-        setErrorMessage("Error al cambiar la contraseña. Inténtalo de nuevo.")
+        errorMsg = error.message;
       }
       
-      return false
+      setErrorMessage(errorMsg);
+      notificationService.showError(errorMsg);
+      return false;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

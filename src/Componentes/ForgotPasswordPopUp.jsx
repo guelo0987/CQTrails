@@ -4,6 +4,7 @@ import '../Estilos/auth.css';
 import logo from "../Imagenes/Logo.svg";
 import { authService } from "../Services/AuthService.ts";
 import Swal from 'sweetalert2';
+import { notificationService } from "../Utils/notificationService.ts";
 
 function ForgotPasswordPopUp({ isOpen, onClose }) {
   const [email, setEmail] = useState("");
@@ -38,31 +39,43 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
       try {
         const response = await authService.forgotPassword(email);
         
-        if (response.Success) {
-          // Clear the form and close it
-          setEmail("");
-          
-          // Show success message with Swal
-          Swal.fire({
-            title: 'Correo enviado',
-            text: response.Message || 'Si el correo existe en nuestro sistema, recibirás instrucciones para recuperar tu contraseña',
-            icon: 'success',
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#09A603'
-          }).then(() => {
-            onClose(); // Close the popup after showing success message
-          });
-        } else {
-          setError(response.Message || "Ocurrió un error al procesar tu solicitud.");
-        }
+        // Always show success message even if there's an error
+        // This is a security best practice to not reveal if an email exists in the system
+        setEmail("");
+        
+        // Use the notification service for success message
+        notificationService.auth.passwordResetSent();
+        
+        // Show success message with Swal
+        Swal.fire({
+          title: 'Correo enviado',
+          text: 'Si el correo existe en nuestro sistema, recibirás instrucciones para recuperar tu contraseña',
+          icon: 'success',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#09A603'
+        }).then(() => {
+          onClose(); // Close the popup after showing success message
+        });
       } catch (error) {
         console.error("Error al solicitar restablecimiento de contraseña:", error);
         
-        if (error.response && error.response.data && error.response.data.Message) {
-          setError(error.response.data.Message);
-        } else {
-          setError("Error al enviar el correo. Por favor, intenta de nuevo.");
-        }
+        // Don't show error to user - instead show generic success message
+        // This is for security reasons to prevent email enumeration
+        setEmail("");
+        
+        // Use the notification service for success message (even though there was an error)
+        notificationService.auth.passwordResetSent();
+        
+        // Show success message with Swal
+        Swal.fire({
+          title: 'Correo enviado',
+          text: 'Si el correo existe en nuestro sistema, recibirás instrucciones para recuperar tu contraseña',
+          icon: 'success',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#09A603'
+        }).then(() => {
+          onClose(); // Close the popup after showing success message
+        });
       } finally {
         setIsLoading(false);
       }
@@ -127,4 +140,4 @@ function ForgotPasswordPopUp({ isOpen, onClose }) {
   );
 }
 
-export default ForgotPasswordPopUp; 
+export default ForgotPasswordPopUp;

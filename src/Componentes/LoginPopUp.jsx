@@ -73,12 +73,12 @@ function LoginPopUp({ isOpen, onClose, onForgotPassword, onLoginSuccess, redirec
           passwordHash: formData.password
         };
         
-        console.log("Attempting login with:", loginData);
+        
         
         const result = await authService.login(loginData);
         
         // Ensure user data is set correctly
-        console.log("Login successful, user data:", result.user);
+        
         
         // Small delay to ensure localStorage is updated
         await new Promise(resolve => setTimeout(resolve, 500));

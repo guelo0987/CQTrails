@@ -56,7 +56,7 @@ class CartService {
   async getUserCartItems(userId: number) {
     try {
       const url = `${this.baseUrl}${endpoints.carrito.userItems(userId)}`;
-      console.log('Fetching cart items from URL:', url);
+      
       
       const response = await axios.get(url);
       if (response.data.notFound) {

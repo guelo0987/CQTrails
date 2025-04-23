@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from "react-router-dom"
 import CartPreview from './CartPreview'
 import "../Estilos/HeaderAuthenticated.css"
-import logo from "../Imagenes/Logo.svg"
+import logo from "../Imagenes/Logo.png"
 import { authService } from "../Services/AuthService.ts"
 // Fix CartService import to use default export
 import CartService from "../Services/CartService.ts"

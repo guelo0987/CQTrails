@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { XIcon } from "lucide-react";
 import '../Estilos/auth.css';
-import logo from "../Imagenes/Logo.svg";
+import logo from "../Imagenes/Logo.png";
 import { authService } from "../Services/AuthService.ts";
 import Swal from 'sweetalert2';
 import { notificationService } from "../Utils/notificationService.ts";

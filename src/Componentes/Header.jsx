@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import "../Estilos/Header.css"
-import logo from "../Imagenes/Logo.svg"
+import logo from "../Imagenes/Logo.png"
 import LoginPopUp from "./LoginPopUp"
 import RegisterPopUp from "./RegisterPopUp"
 import ForgotPasswordPopUp from "./ForgotPasswordPopUp"

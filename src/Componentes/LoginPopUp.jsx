@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { XIcon, Eye, EyeOff } from "lucide-react";
 import "../Estilos/auth.css";
-import logo from "../Imagenes/Logo.svg";
+import logo from "../Imagenes/Logo.png";
 import { authService } from "../Services/AuthService.ts";
 import { notificationService } from "../Utils/notificationService.ts";
 

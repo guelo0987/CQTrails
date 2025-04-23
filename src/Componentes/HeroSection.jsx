@@ -570,7 +570,7 @@ const HeroSection = ({ vehicles = [] }) => {
                     <p className="cq-hero__result-info">Año: {vehicle.ano}</p>
                     <p className="cq-hero__result-info">Tipo: {vehicle.tipoVehiculo}</p>
                     <p className="cq-hero__result-info">Capacidad: {vehicle.capacidad} personas</p>
-                    <p className="cq-hero__result-price">${vehicle.price}/día</p>
+                    <p className="cq-hero__result-price">DOP {vehicle.price}/día</p>
                     <button 
                       className="cq-hero__result-button"
                       onClick={() => navigate(`/vehiculo/${vehicle.idVehiculo}`)}

@@ -183,8 +183,8 @@ const Sidebar = ({
             }}
           />
           <div className="price-range">
-            <span>$0.00</span>
-            <span>${priceRange.toFixed(2)}</span>
+            <span>DOP 0.00</span>
+            <span>DOP {priceRange.toFixed(2)}</span>
           </div>
         </div>
       </div>

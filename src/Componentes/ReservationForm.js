@@ -410,7 +410,7 @@ export default function ReservationForm({ price, onSubmit, isLoading = false }) 
 
       <div className="price-section">
         <div className="price-display">
-          <span className="price-amount">${price.toFixed(2)}</span>
+          <span className="price-amount">DOP {price.toFixed(2)}</span>
           <span className="price-period">/ día</span>
         </div>
         <button 

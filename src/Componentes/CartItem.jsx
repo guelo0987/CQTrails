@@ -59,7 +59,7 @@ function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) 
       </div>
 
       <div className="column column-price">
-        ${item.precio}/día
+        DOP {item.precio}/día
       </div>
 
       <div className="column column-dates">
@@ -101,7 +101,7 @@ function CartItem({ item, onRemove, onUpdateQuantity, onDateChange, isHeader }) 
       </div>
 
       <div className="column column-subtotal">
-        ${subtotal}
+        DOP {subtotal}
       </div>
 
       <div className="column column-actions">

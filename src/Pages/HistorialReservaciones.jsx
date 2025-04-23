@@ -247,7 +247,7 @@ export default function HistorialReservaciones() {
                   <tr key={reservation.idReservacion}>
                     <td>{new Date(reservation.fechaReservacion).toLocaleDateString()}</td>
                     <td>{`${reservation.usuario?.nombre || ''} ${reservation.usuario?.apellido || ''}`}</td>
-                    <td>${reservation.total.toFixed(2)}</td>
+                    <td>DOP {reservation.total.toFixed(2)}</td>
                     <td>
                       <span className={`status-badge ${getStatusClass(reservation.estado)}`}>
                         {reservation.estado || 'Pendiente'}

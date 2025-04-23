@@ -11,15 +11,15 @@ function CartSummary({ subtotal, total, onReserve }) {
       <div className="summary-details">
         <div className="summary-row">
           <span>Subtotal</span>
-          <span>${subtotal}</span>
+          <span>DOP {subtotal}</span>
         </div>
         <div className="summary-row">
           <span>IVA (13%)</span>
-          <span>${iva}</span>
+          <span>DOP {iva}</span>
         </div>
         <div className="summary-row total">
           <span>Total</span>
-          <span>${total}</span>
+          <span>DOP {total}</span>
         </div>
       </div>
 

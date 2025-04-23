@@ -441,7 +441,7 @@ export default function Perfil() {
                   </div>
                   
                   <div className="reservacion-total">
-                    ${reservacion.total || reservacion.montoTotal || "0.00"}
+                    DOP {reservacion.total || reservacion.montoTotal || "0.00"}
                   </div>
                   
                   <div className="reservacion-arrow">

@@ -64,7 +64,7 @@ const CartPreview = ({ items = [], isVisible }) => {
                 </span>
               </div>
               <div className="preview-item-price">
-                <span>${item.price || 0}</span>
+                <span>DOP {item.price || 0}</span>
                 <span className="preview-item-quantity">Cantidad: {item.cantidad}</span>
               </div>
             </div>
@@ -74,7 +74,7 @@ const CartPreview = ({ items = [], isVisible }) => {
       <div className="cart-preview-footer">
         <div className="preview-subtotal">
           <span>Subtotal</span>
-          <span>${calculateTotal()}</span>
+          <span>DOP {calculateTotal()}</span>
         </div>
         <Link to="/mi-carrito" className="view-cart-button">
           Ver Carrito

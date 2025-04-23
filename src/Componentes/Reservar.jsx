@@ -444,7 +444,7 @@ function Reservar() {
                 <span><i className="fas fa-gas-pump"></i> {vehicle.combustible}</span>
               </div>
               <div className="vehicle-price-container">
-                <span className="vehicle-price">${vehicle.precio} / día</span>
+                <span className="vehicle-price">DOP {vehicle.precio} / día</span>
                 <div className="vehicle-buttons">
                   <button
                     className="btn-reservar"

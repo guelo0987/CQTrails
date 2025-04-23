@@ -45,7 +45,7 @@ function VehicleSection() {
           return {
             id: vehicle.idVehiculo || index + 1,
             name: vehicle.modelo || `Vehículo ${index + 1}`,
-            price: `$${vehicle.price || '99.00'}/ dady`,
+            price: `DOP ${vehicle.price || '99.00'}/día`,
             image: vehicleImage,
             logo: defaultLogos[index % defaultLogos.length],
             bgClass: index % 2 === 0 ? "bg-white" : "bg-mint",

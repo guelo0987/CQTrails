@@ -143,7 +143,7 @@ const VehicleGrid = ({ vehicles }) => {
 
             <div className="vehicle-footer">
               <div className="price">
-                <span className="amount">${vehicle.price.toFixed(2)}</span>
+                <span className="amount">DOP {vehicle.price.toFixed(2)}</span>
                 <span className="period">/día</span>
               </div>
               <button 

@@ -4,7 +4,7 @@ export const endpoints = {
     auth: {
         login: 'api/Auth/login',
         register: 'api/Auth/register',
-        updateUserAndEmpresa: 'api/Auth/update-user-and-empresa' // New endpoint
+        updateUserAndEmpresa: 'api/Auth/update-user-and-empresa' 
     },
 
     userRecovery: {
